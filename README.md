@@ -1,6 +1,5 @@
 # Ms365UsageReport PowerShell Script
 
-- [Overview](#overview)
 - [Requirements](#requirements)
 - [How to Get the Script](#how-to-get-the-script)
   * [Files List](#files-list)
