@@ -1,8 +1,30 @@
-# Ms365UsageReport
+# Ms365UsageReport PowerShell Script
+
+- [Overview](#overview)
+- [Requirements](#requirements)
+- [How to Get the Script](#how-to-get-the-script)
+  * [Files List](#files-list)
+- [Configuration](#configuration)
+  * [Make a New Configuration File](#make-a-new-configuration-file)
+  * [JSON Settings Explained](#json-settings-explained)
+- [How to Use the Script](#how-to-use-the-script)
+  * [Syntax](#syntax)
+  * [Running the Script](#running-the-script)
+  * [Script Output](#script-output)
+    + [Transcript File](#transcript-file)
+    + [Raw Data and HTML Report Files](#raw-data-and-html-report-files)
+    + [HTML Report](#html-report)
+    + [Email Report](#email-report)
+- [ANNEX](#annex)
+  * [Registering a New Azure AD App](#registering-a-new-azure-ad-app)
+    + [Adding the Required API Permissions](#adding-the-required-api-permissions)
+    + [Adding a Client Secret Key](#adding-a-client-secret-key)
+    + [Granting Admin Consent](#granting-admin-consent)
+  * [Generating Access Tokens](#generating-access-tokens)
 
 ## Overview
 
-This PowerShell script exports the Office 365 usage report using the [*Microsoft Graph API v1.0*](https://docs.microsoft.com/en-us/graph/overview?view=graph-rest-1.0) and [*ExchangeOnlineManagement PowerShell Module*](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3).
+This PowerShell script exports the Microsoft 365 usage reports using the [*Microsoft Graph API v1.0*](https://docs.microsoft.com/en-us/graph/overview?view=graph-rest-1.0) and [*ExchangeOnlineManagement PowerShell Module*](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3). The results are saved locally and can also be sent by email.
 
 The reports that can be exported using this script are:
 
@@ -55,19 +77,21 @@ The reports that can be exported using this script are:
 ## Requirements
 
 - A registered Azure AD (OAuth) App with the following settings:
-  
+
   > *Annex:* [Registering a New Azure AD App](#Registering-a-New-Azure-AD-App)
-  
+
   - **API**: *Microsoft Graph*
   - **Permission Type**: *Application*
   - **Permission(s)**:
     - *Reports.Read.All* - For reading the usage reports.
     - *Directory.Read.All* - For getting the deleted Microsoft 365 Groups and users.
     - *Mail.Send* - For sending the report by email.
-  
+
 - Windows PowerShell 5.1 or PowerShell 7.
 
-- *[ExchangeOnlineManagement PowerShell Module](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3)* must be installed on the computer where you will be running this script.
+- The *[ExchangeOnlineManagement PowerShell Module](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3)* must be installed on the computer where you will be running this script.
+
+- The [*MSAL.PS PowerShell Module*](https://www.powershellgallery.com/packages/MSAL.PS/4.19.0.1) must be installed on the computer where you will be running this script. This will be used to generate access tokens for Microsoft Graph API. (Refer to [Generate an Access Token](#Generating-Access-Tokens))
 
 - A valid mailbox that will be used for sending the report. A shared mailbox (no license) is recommended.
 
@@ -96,9 +120,9 @@ To create a new configuration, make a copy of the *config_template.json*. I reco
 
 > You can use any name for the new configuration file. The content is what's important, not the file name.
 
-### Customize the Settings
+### JSON Settings Explained
 
-Open your JSON file using any text editor. It would be better to use an editor that supports syntax/language support like [*Notepad++*](https://notepad-plus-plus.org/downloads/), [*Atom*](https://atom.io/), or [*Visual Studio Code*](https://code.visualstudio.com/).
+Open your JSON file using any text editor. It would be best to use an editor that has syntax/language support like [*Notepad++*](https://notepad-plus-plus.org/downloads/), [*Atom*](https://atom.io/), or [*Visual Studio Code*](https://code.visualstudio.com/).
 
 The code below shows the default content of the configuration JSON file. The meaning of each setting is explained in the next section.
 
@@ -135,10 +159,6 @@ The code below shows the default content of the configuration JSON file. The mea
 }
 ```
 
-#### Settings Explained
-
-> Note: For settings that can be turned ON or OFF, used the value of `"1"` for *ON* and `""` (empty) for *OFF*.
-
 | PARAMETERS      |                                                              |
 | --------------- | ------------------------------------------------------------ |
 | **transLog**    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript* folder. |
@@ -167,15 +187,15 @@ The code below shows the default content of the configuration JSON file. The mea
 | **exchangeTopMailTraffic** | Turn ON or OFF the Exchange Online Mail Top Traffic reports.<br />ON: `"exchangeTopMailTraffic": "1"` <br />OFF: `"exchangeTopMailTraffic": ""` |
 | **exchangeATPDetections**  | Turn ON or OFF the Exchange Online Mail ATP detection reports.<br />ON: `"exchangeATPDetections": "1"` <br />OFF: `"exchangeATPDetections": ""` |
 
-| DEVELOPER       |                                                              |
-| --------------- | ------------------------------------------------------------ |
-| graphApiVersion | **DO NOT CHANGE!!! FOR DEVELOPMENT USE ONLY**.<br />This defines the Microsoft Graph API version used by the script. |
+| DEVELOPER           |                                                              |
+| ------------------- | ------------------------------------------------------------ |
+| **graphApiVersion** | **DO NOT CHANGE!!! FOR DEVELOPMENT USE ONLY**.<br />This defines the Microsoft Graph API version used by the script. |
 
 ## How to Use the Script
 
 ### Syntax
 
-The `*Get-Ms365UsageReport.ps1*` script accepts two (2) mandatory parameters.
+The `Get-Ms365UsageReport.ps1` script accepts two (2) mandatory parameters.
 
 - `-Config` - This parameter accepts the path of the [JSON configuration](#configuration) file.
 - `-GraphApiAccessToken` - This parameter access the MS Graph API pre-authenticated token value.
@@ -184,13 +204,45 @@ The `*Get-Ms365UsageReport.ps1*` script accepts two (2) mandatory parameters.
 .\Get-Ms365UsageReport.ps1 -Config <PATH TO JSON FILE> -GraphApiAccessToken <ACCESS TOKEN> -Verbose
 ```
 
-### Example 1
+### Running the Script
 
+1. Open PowerShell and change the working directory to where you saved the script.
 
+2. [Generate an Access Token](#Generating-Access-Tokens)
 
-### Example 2
+3. Connect to Exchange Online PowerShell using [`Connect-ExchangeOnline`](https://docs.microsoft.com/en-us/powershell/module/exchange/connect-exchangeonline?view=exchange-ps)
 
+4. Run the script. In the example below, the configuration file used is *poshlab.ml.json* which is in the same folder as the script. And the access token is stored in the `$token.AccessToken` variable.
 
+   ```powershell
+   .\Get-Ms365UsageReport.ps1 -config .\poshlab.ml.json -GraphApiAccessToken $token.AccessToken -Verbose
+   ```
+
+You should see a screen output similar to the one below.
+
+![Run Script](images/run_script.png)
+
+### Script Output
+
+#### Transcript File
+
+If transcript logging is enabled, the transcript is saved to the *transcript* folder.
+
+![Transcript](images/transcript_file.png)
+
+#### Raw Data and HTML Report Files
+
+If raw data saving is enabled, the raw data files and HTML report is saved to the *reports\[ORGANIZATION]\[REPORT PERIOD]* folder.
+
+![raw data and report files](images/report_files.png)
+
+#### HTML Report
+
+![HTML Report](images/html_report.png)
+
+#### Email Report
+
+![Email Report](images/email_report.png)
 
 ## ANNEX
 
@@ -210,19 +262,97 @@ Go to the [Azure Active Directory admin center](https://aad.portal.azure.com/) a
 
 ![azapp02](images/azApp02.png)
 
-### Adding API Permissions
+After the App has been registered, copy the **Application (client) ID** and **Directory (tenant) ID**.
+
+![azApp09](images/azApp09.png)
+
+#### Adding the Required API Permissions
 
 Go to **API Permissions** and click on the **Add a Permission** button.
 
-- **API**: *Microsoft Graph*
-- **Permission Type**: *Application*
-- **Permission(s)**:
-  - *Reports.Read.All* - For reading the usage reports.
-  - *Directory.Read.All* - For getting the deleted Microsoft 365 Groups and users.
-  - *Mail.Send* - For sending the report by email.
+![azapp03](images/azApp03.png)
 
+In the **Request API Permission**, select **Microsoft Graph API**.
+
+![azapp04](images/azApp04.png)
+
+In **What type of permissions does your application require?** click on **Application **.
+
+![azapp05](images/azApp05.png)
+
+From the list of permissions, search for and enable the following permissions.
+
+- *Reports.Read.All*
+
+- *Directory.Read.All*
+
+- *Mail.Send*
+
+Once you're done selecting the permissions, click on the **Add permissions** button.
+
+#### Adding a Client Secret Key
+
+> *Note: You can use either a Certificate or a Client Secret for API authentication. This example shows you only how to create a client secret.*
+
+Go to **Certificates & secrets** and click on the **New client secret** button.
+
+![azapp10](images/azApp10.png)
+
+In the **Add a client secret** page:
+
+* Type in the **Description** box the description you want to use. In this example, the description used is ***secret key 1***.
+* Select the validity period for this secret. In this example, the secret key **Expires** <u>***In 2 years***</u>. Choose which ever one is permitted for your organization.
+* Click on **Add**.
+
+Once the secret has been created, it is important to copy and save the key.
+
+![azapp11](images/azApp11.png)
+
+#### Granting Admin Consent
+
+> *Note: Only a Global Admin can grant consent on behalf of the Microsoft 365 Tenant. If you do not have the proper rights, ask your Global Admin to grant the consent.*
+
+You should see that the new API permissions are added, but the status if ***Not granted for [tenant]***. To finish granting the permissions, click on the **Grant admin consent for [tenant]** button.
+
+![azapp06](images/azApp06.png)
+
+When asked to confirm, click on **Yes**.
+
+![azapp07](images/azApp07.png)
+
+The API permissions status should change to **Granted for [tenant]**
+
+![azapp08](images/azApp08.png)
+
+Now you should have the following details available:
+
+* Client ID
+* Secret Key
+* Tenant ID
 
 ### Generating Access Tokens
 
+To generate access tokens for Graph API, you should already have the Client ID, Secret Key, and Tenant ID of your [registered Azure AD App](#Registering-a-New-Azure-AD-App).
 
+Use the code below to generate an access token. Make sure to change the values of the `$ClientID`, `$ClientSecret`, `$TenantID` variables.
+
+```PowerShell
+Import-Module MSAL.PS
+
+# Define your API details
+$ClientID = 'Client ID'
+$ClientSecret = 'Secret Key'
+$TenantID = 'Tenant ID or Domain (org-name.onmicrosoft.com)'
+
+# Get the access token
+$token = Get-MsalToken -ClientID $ClientID `
+-TenantID $TenantID `
+-ClientSecret (ConvertTo-SecureString $ClientSecret -AsPlainText -Force)
+```
+
+After you run the command above, the token is saved to the `$token.AccessToken` variable. See the demo below for reference.
+
+![Get-MsalToken](images/get-msaltoken.gif)
+
+> *Note: Access Tokens are only valid for one (1) hour from the time it was generated.*
 
