@@ -197,7 +197,72 @@ $mailSubject = "[$($organizationName)] Microsoft 365 Usage Report for the period
 $html = "<html>"
 $html += "<head><title>$($mailSubject)</title>"
 $html += "<meta http-equiv=""Content-Type"" content=""text/html; charset=ISO-8859-1"" />"
-$html += '<style type="text/css">' + (Get-Content "$($script_root)\resource\style.css" -Raw) + '</style>'
+$html += '<style type="text/css">'
+$html += @'
+#HeadingInfo
+	{
+		font-family:"Segoe UI";
+		width:100%;
+		border-collapse:collapse;
+	}
+#HeadingInfo td, #HeadingInfo th
+	{
+		font-size:0.8em;
+		padding:3px 7px 2px 7px;
+	}
+#HeadingInfo th
+	{
+		font-size:2.0em;
+		font-weight:normal;
+		text-align:left;
+		padding-top:5px;
+		padding-bottom:4px;
+		background-color:#fff;
+		color:#000;
+	}
+#section
+	{
+		font-family:"Segoe UI";
+		width:100%;
+		border-collapse:collapse;
+	}
+#section th.data
+	{
+		font-size:1.2em;
+		text-align:left;
+		padding-top:5px;
+		padding-bottom:4px;
+		background-color:#fff;
+		color:#000;
+	}
+#data
+	{
+		font-family:"Segoe UI";
+		width:100%;
+		border-collapse:collapse;
+	}
+#data td, #data th
+	{
+		font-size:0.8em;
+		border:1px solid #DDD;
+		padding:3px 7px 2px 7px;
+	}
+#data th
+	{
+		font-size:0.8em;
+		padding-top:5px;
+		padding-bottom:4px;
+		background-color:#fff;
+		color:#000; text-align:left;
+	}
+#data td
+	{ 	font-size:0.8em;
+		padding-top:5px;
+		padding-bottom:4px;
+		text-align:left;
+	}
+'@
+$html += '</style>'
 $html += "</head><body>"
 $html += '<table id="HeadingInfo">'
 $html += '<tr><th>Microsoft 365 Usage Report</th></tr>'
