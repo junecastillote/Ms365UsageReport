@@ -143,7 +143,7 @@ The code below shows the default content of the configuration JSON file. The mea
 | --------------- | ------------------------------------------------------------ |
 | **transLog**    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript* folder. |
 | **saveRawData** | Turn ON or OFF the saving of raw data. Raw data files are saved to the *<script_root>\reports\<organization name>* |
-| period          | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
+| **period**      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
 
 | MAIL            |                                                              |
 | --------------- | ------------------------------------------------------------ |
@@ -198,7 +198,7 @@ The `*Get-Ms365UsageReport.ps1*` script accepts two (2) mandatory parameters.
 
 Go to the [Azure Active Directory admin center](https://aad.portal.azure.com/) and navigate to ***Azure Active Directory > App registrations***. Then, click on **New Registration**.
 
-![azapp01](images/azapp01.png)
+![azapp01](images/azApp01.png)
 
 * In the **Name**, type in ***Microsoft 365 Usage Reports***.
 
@@ -208,7 +208,7 @@ Go to the [Azure Active Directory admin center](https://aad.portal.azure.com/) a
 
 * Click on **Register**.
 
-![azapp01](images/azapp02.png)
+![azapp02](images/azApp02.png)
 
 ### Adding API Permissions
 
