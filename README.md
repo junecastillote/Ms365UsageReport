@@ -95,7 +95,9 @@ The reports that can be exported using this script are:
 - A valid mailbox that will be used for sending the report. A shared mailbox (no license) is recommended.
 
 ## How to Get the Script
-[Clone](https://github.com/junecastillote/Ms365UsageReport.git) or [download](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [repository](https://github.com/junecastillote/Ms365UsageReport) and extract the files to your preferred location.
+If you only plan to use the script, you can [*download the latest release*](https://github.com/junecastillote/Ms365UsageReport/releases).
+
+Otherwise, you can fork, [*clone*](https://github.com/junecastillote/Ms365UsageReport.git), or [*download*](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [*repository*](https://github.com/junecastillote/Ms365UsageReport). After downloading, extract the files to your preferred location.
 
 ![Ms365UsageReport Files](images/script_files.png)<br>Script files
 
