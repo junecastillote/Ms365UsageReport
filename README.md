@@ -133,21 +133,21 @@ The code below shows the default content of the configuration JSON file. The mea
 
 > Note: For settings that can be turned ON or OFF, used the value of `"1"` for *ON* and `""` (empty) for *OFF*.
 
-| parameters  |                                                              |
+| PARAMETERS  |                                                              |
 | ----------- | ------------------------------------------------------------ |
 | transLog    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript* folder. |
 | saveRawData | Turn ON or OFF the saving of raw data. Raw data files are saved to the *<script_root>\reports\<organization name>* |
 | period      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
 
-| mail        |                                                              |
+| MAIL        |                                                              |
 | ----------- | ------------------------------------------------------------ |
 | sendEmail   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html* |
 | fromAddress | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license. |
-| toAddress   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example: "recipient1@domain.com,recipient2@domain.com" |
-| ccAddress   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example: "recipient1@domain.com,recipient2@domain.com" |
-| bccAddress  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example: "recipient1@domain.com,recipient2@domain.com" |
+| toAddress   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example:<br />`"toAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| ccAddress   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example:<br />`"ccAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| bccAddress  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example:<br />`"bccAddress": "recipient1@domain.com,recipient2@domain.com"` |
 
-| reports                |                                                              |
+| REPORTS                |                                                              |
 | ---------------------- | ------------------------------------------------------------ |
 | license                | Turn ON or OFF the license assignment count report.          |
 | sharepoint             | Turn ON or OFF the SharePoint Online reports.                |
@@ -161,7 +161,19 @@ The code below shows the default content of the configuration JSON file. The mea
 | exchangeTopMailTraffic | Turn ON or OFF the Exchange Online Mail Top Traffic reports. |
 | exchangeATPDetections  | Turn ON or OFF the Exchange Online Mail ATP detection reports. |
 
-| developer       |                                                              |
+| DEVELOPER       |                                                              |
 | --------------- | ------------------------------------------------------------ |
-| graphApiVersion | DO NOT CHANGE!!! FOR FUTURE DEVELOPMENT USE ONLY.<br />This defines the Microsoft Graph API version used by the script. |
+| graphApiVersion | **DO NOT CHANGE!!! FOR DEVELOPMENT USE ONLY**.<br />This defines the Microsoft Graph API version used by the script. |
+
+## How to Use the Script
+
+The *Get-Ms365UsageReport.ps1* script accepts two (2) mandatory parameters.
+
+- `-Config` - This parameter accepts the path of the JSON configuration file. (Refer to the [Configuration](#configuration) section)
+- `-GraphApiAccessToken` - This parameter access the MS Graph API pre-authenticated token value.
+- 
+
+
+
+## ANNEX
 
