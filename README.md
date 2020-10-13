@@ -78,7 +78,7 @@ The reports that can be exported using this script are:
 
 - A registered Azure AD (OAuth) App with the following settings:
 
-  > *Annex:* [Registering a New Azure AD App](#Registering-a-New-Azure-AD-App)
+  > *Annex:* [*Register a New Azure AD App*](#Register-a-New-Azure-AD-App)
 
   - **API**: *Microsoft Graph*
   - **Permission Type**: *Application*
@@ -246,7 +246,7 @@ If raw data saving is enabled, the raw data files and HTML report is saved to th
 
 ## ANNEX
 
-### Registering a New Azure AD App
+### Register a New Azure AD App
 
 Go to the [Azure Active Directory admin center](https://aad.portal.azure.com/) and navigate to ***Azure Active Directory > App registrations***. Then, click on **New Registration**.
 
