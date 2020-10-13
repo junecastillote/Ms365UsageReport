@@ -54,15 +54,21 @@ The reports that can be exported using this script are:
 
 ## Requirements
 
-- Registered Azure AD (OAuth) App
+- A registered Azure AD (OAuth) App with the following settings:
+  
+  > *Annex:* [Registering a New Azure AD App](#Registering-a-New-Azure-AD-App)
+  
   - **API**: *Microsoft Graph*
   - **Permission Type**: *Application*
   - **Permission(s)**:
     - *Reports.Read.All* - For reading the usage reports.
     - *Directory.Read.All* - For getting the deleted Microsoft 365 Groups and users.
     - *Mail.Send* - For sending the report by email.
+  
 - Windows PowerShell 5.1 or PowerShell 7.
+
 - *[ExchangeOnlineManagement PowerShell Module](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3)* must be installed on the computer where you will be running this script.
+
 - A valid mailbox that will be used for sending the report. A shared mailbox (no license) is recommended.
 
 ## How to Get the Script
@@ -133,33 +139,33 @@ The code below shows the default content of the configuration JSON file. The mea
 
 > Note: For settings that can be turned ON or OFF, used the value of `"1"` for *ON* and `""` (empty) for *OFF*.
 
-| PARAMETERS  |                                                              |
-| ----------- | ------------------------------------------------------------ |
-| transLog    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript* folder. |
-| saveRawData | Turn ON or OFF the saving of raw data. Raw data files are saved to the *<script_root>\reports\<organization name>* |
-| period      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
+| PARAMETERS      |                                                              |
+| --------------- | ------------------------------------------------------------ |
+| **transLog**    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript* folder. |
+| **saveRawData** | Turn ON or OFF the saving of raw data. Raw data files are saved to the *<script_root>\reports\<organization name>* |
+| period          | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
 
-| MAIL        |                                                              |
-| ----------- | ------------------------------------------------------------ |
-| sendEmail   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html* |
-| fromAddress | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license. |
-| toAddress   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example:<br />`"toAddress": "recipient1@domain.com,recipient2@domain.com"` |
-| ccAddress   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example:<br />`"ccAddress": "recipient1@domain.com,recipient2@domain.com"` |
-| bccAddress  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example:<br />`"bccAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| MAIL            |                                                              |
+| --------------- | ------------------------------------------------------------ |
+| **sendEmail**   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html*<br /><br />`"sendEmail": "1"` = ON<br />`"sendEmail": ""` = OFF |
+| **fromAddress** | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license.<br />Example:<br />`"fromAddress": "sender@domain.com"` |
+| **toAddress**   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br />Example:<br />`"toAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| **ccAddress**   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br />Example: <br />"ccAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| **bccAddress**  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br />Example:<br />`"bccAddress": "recipient1@domain.com,recipient2@domain.com"` |
 
-| REPORTS                |                                                              |
-| ---------------------- | ------------------------------------------------------------ |
-| license                | Turn ON or OFF the license assignment count report.          |
-| sharepoint             | Turn ON or OFF the SharePoint Online reports.                |
-| onedrive               | Turn ON or OFF the OneDrive for Business reports.            |
-| SkypeForBusiness       | Turn ON or OFF the Skype for Business reports.               |
-| teams                  | Turn ON or OFF the Microsoft Teams report.                   |
-| Office365Groups        | Turn ON or OFF the Microsoft 365 Groups report.              |
-| exchangeMailbox        | Turn ON or OFF the Exchange Online Mailbox reports.          |
-| exchangeApp            | Turn ON or OFF the Exchange Online Email App report.         |
-| exchangeMailTraffic    | Turn ON or OFF the Exchange Online Mail Traffic reports.     |
-| exchangeTopMailTraffic | Turn ON or OFF the Exchange Online Mail Top Traffic reports. |
-| exchangeATPDetections  | Turn ON or OFF the Exchange Online Mail ATP detection reports. |
+| REPORTS                    |                                                              |
+| -------------------------- | ------------------------------------------------------------ |
+| **license**                | Turn ON or OFF the license assignment count report.<br />ON: `"license": "1"` <br />OFF: `"license": ""` |
+| **sharepoint**             | Turn ON or OFF the SharePoint Online reports.<br />ON: `"sharepoint": "1"` <br />OFF: `"sharepoint": ""` |
+| **onedrive**               | Turn ON or OFF the OneDrive for Business reports.<br />ON: `"onedrive": "1"` <br />OFF: `"onedrive": ""` |
+| **SkypeForBusiness**       | Turn ON or OFF the Skype for Business reports.<br />ON: `"SkypeForBusiness": "1"` <br />OFF: `"SkypeForBusiness": ""` |
+| **teams**                  | Turn ON or OFF the Microsoft Teams report.<br />ON: `"teams": "1"` <br />OFF: `"teams": ""` |
+| **Office365Groups**        | Turn ON or OFF the Microsoft 365 Groups report.<br />ON: `"Office365Groups": "1"` <br />OFF: `"Office365Groups": ""` |
+| **exchangeMailbox**        | Turn ON or OFF the Exchange Online Mailbox reports.<br />ON: `"exchangeMailbox": "1"` <br />OFF: `"exchangeMailbox": ""` |
+| **exchangeApp**            | Turn ON or OFF the Exchange Online Email App report.<br />ON: `"exchangeApp": "1"` <br />OFF: `"exchangeApp": ""` |
+| **exchangeMailTraffic**    | Turn ON or OFF the Exchange Online Mail Traffic reports.<br />ON: `"exchangeMailTraffic": "1"` <br />OFF: `"exchangeMailTraffic": ""` |
+| **exchangeTopMailTraffic** | Turn ON or OFF the Exchange Online Mail Top Traffic reports.<br />ON: `"exchangeTopMailTraffic": "1"` <br />OFF: `"exchangeTopMailTraffic": ""` |
+| **exchangeATPDetections**  | Turn ON or OFF the Exchange Online Mail ATP detection reports.<br />ON: `"exchangeATPDetections": "1"` <br />OFF: `"exchangeATPDetections": ""` |
 
 | DEVELOPER       |                                                              |
 | --------------- | ------------------------------------------------------------ |
@@ -167,13 +173,56 @@ The code below shows the default content of the configuration JSON file. The mea
 
 ## How to Use the Script
 
-The *Get-Ms365UsageReport.ps1* script accepts two (2) mandatory parameters.
+### Syntax
 
-- `-Config` - This parameter accepts the path of the JSON configuration file. (Refer to the [Configuration](#configuration) section)
+The `*Get-Ms365UsageReport.ps1*` script accepts two (2) mandatory parameters.
+
+- `-Config` - This parameter accepts the path of the [JSON configuration](#configuration) file.
 - `-GraphApiAccessToken` - This parameter access the MS Graph API pre-authenticated token value.
-- 
+
+```PowerShell
+.\Get-Ms365UsageReport.ps1 -Config <PATH TO JSON FILE> -GraphApiAccessToken <ACCESS TOKEN> -Verbose
+```
+
+### Example 1
+
+
+
+### Example 2
 
 
 
 ## ANNEX
+
+### Registering a New Azure AD App
+
+Go to the [Azure Active Directory admin center](https://aad.portal.azure.com/) and navigate to ***Azure Active Directory > App registrations***. Then, click on **New Registration**.
+
+![azapp01](images/azapp01.png)
+
+* In the **Name**, type in ***Microsoft 365 Usage Reports***.
+
+* In the **Supported account types**, select ***Accounts in this organizational directory only***.
+
+* In the **Redirect URI (optional)**, select ***Web*** and type in ***http://localhost***.
+
+* Click on **Register**.
+
+![azapp01](images/azapp02.png)
+
+### Adding API Permissions
+
+Go to **API Permissions** and click on the **Add a Permission** button.
+
+- **API**: *Microsoft Graph*
+- **Permission Type**: *Application*
+- **Permission(s)**:
+  - *Reports.Read.All* - For reading the usage reports.
+  - *Directory.Read.All* - For getting the deleted Microsoft 365 Groups and users.
+  - *Mail.Send* - For sending the report by email.
+
+
+### Generating Access Tokens
+
+
 
