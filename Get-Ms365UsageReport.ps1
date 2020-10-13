@@ -3,7 +3,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.4
+.VERSION 1.0
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -890,7 +890,7 @@ $html += 'Generated from Server: ' + ($env:COMPUTERNAME) + '<br />'
 $html += 'Script File: ' + $MyInvocation.MyCommand.Definition + '<br />'
 $html += 'Config File: ' + $Config + '<br />'
 $html += '</p><p>'
-$html += '<a href="' + ($scriptInfo.PROJECTURI) + '">Office 365 Usage Summary Report v.' + ($scriptInfo.Version) + '</a></p>'
+$html += '<a href="' + ($scriptInfo.PROJECTURI) + '">Ms365UsageReport v.' + ($scriptInfo.Version) + '</a></p>'
 $html += '</body></html>'
 $html | Out-File "$($reportFolder)\report.html"
 
@@ -913,7 +913,7 @@ if ($sendEmail) {
                 internetMessageHeaders = @(
                     @{
                         name  = "X-Mailer"
-                        value = "Get-Office365UsageReport by june.castillote@gmail.com"
+                        value = "Ms365UsageReport by June Castillote"
                     }
                 )
             }
