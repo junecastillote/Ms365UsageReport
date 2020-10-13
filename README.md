@@ -68,7 +68,7 @@ The reports that can be exported using this script are:
 ## How to Get the Script
 [Clone](https://github.com/junecastillote/Ms365UsageReport.git) or [download](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [repository](https://github.com/junecastillote/Ms365UsageReport) and extract the files to your preferred location.
 
-![Ms365UsageReport Files](/images/script_files.png)<br>Script files
+![Ms365UsageReport Files](images/script_files.png)<br>Script files
 
 ### Files List
 
@@ -80,10 +80,88 @@ The reports that can be exported using this script are:
 
 ## Configuration
 
+### Make a New Configuration File
+
 The script uses configuration details from a JSON document. You can have many configuration files with different settings if you want.
 
-To create a new configuration, make a copy of the *config_template.json*.
+To create a new configuration, make a copy of the *config_template.json*. I recommend for you to use your Microsoft 365 tenant domain as the name of the configuration file for easier identification.
+
+![Create a copy of the configuration file](images/copy_config.png)<br>Create a copy of the configuration file
 
 > You can use any name for the new configuration file. The content is what's important, not the file name.
 
-![Create a copy of the configuration file](/images/copy_config.png)<br>Create a copy of the configuration file
+### Customize the Settings
+
+Open your JSON file using any text editor. It would be better to use an editor that supports syntax/language support like [*Notepad++*](https://notepad-plus-plus.org/downloads/), [*Atom*](https://atom.io/), or [*Visual Studio Code*](https://code.visualstudio.com/).
+
+The code below shows the default content of the configuration JSON file. The meaning of each setting is explained in the next section.
+
+```JSON
+{
+    "parameters": {
+        "transLog": "1",
+        "saveRawData": "1",
+        "period": "30"
+    },
+    "mail": {
+        "sendEmail": "1",
+        "fromAddress": "sender@domain.com",
+        "toAddress": "recipient1@domain.com,recipient2@domain.com",
+        "ccAddress": "",
+        "bccAddress": ""
+    },
+    "reports": {
+        "license": "1",
+        "sharepoint": "1",
+        "onedrive": "1",
+        "SkypeForBusiness": "1",
+        "teams": "1",
+        "Office365Groups": "1",
+        "exchangeMailbox": "1",
+        "exchangeApp": "1",
+        "exchangeTopMailTraffic": "1",
+        "exchangeMailTraffic": "1",
+        "exchangeATPDetections": "1"
+    },
+    "developer": {
+        "graphApiVersion": "beta"
+    }
+}
+```
+
+#### Settings Explained
+
+> Note: For settings that can be turned ON or OFF, used the value of `"1"` for *ON* and `""` (empty) for *OFF*.
+
+| parameters  |                                                              |
+| ----------- | ------------------------------------------------------------ |
+| transLog    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript* folder. |
+| saveRawData | Turn ON or OFF the saving of raw data. Raw data files are saved to the *<script_root>\reports\<organization name>* |
+| period      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
+
+| mail        |                                                              |
+| ----------- | ------------------------------------------------------------ |
+| sendEmail   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html* |
+| fromAddress | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license. |
+| toAddress   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example: "recipient1@domain.com,recipient2@domain.com" |
+| ccAddress   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example: "recipient1@domain.com,recipient2@domain.com" |
+| bccAddress  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br /><br />Example: "recipient1@domain.com,recipient2@domain.com" |
+
+| reports                |                                                              |
+| ---------------------- | ------------------------------------------------------------ |
+| license                | Turn ON or OFF the license assignment count report.          |
+| sharepoint             | Turn ON or OFF the SharePoint Online reports.                |
+| onedrive               | Turn ON or OFF the OneDrive for Business reports.            |
+| SkypeForBusiness       | Turn ON or OFF the Skype for Business reports.               |
+| teams                  | Turn ON or OFF the Microsoft Teams report.                   |
+| Office365Groups        | Turn ON or OFF the Microsoft 365 Groups report.              |
+| exchangeMailbox        | Turn ON or OFF the Exchange Online Mailbox reports.          |
+| exchangeApp            | Turn ON or OFF the Exchange Online Email App report.         |
+| exchangeMailTraffic    | Turn ON or OFF the Exchange Online Mail Traffic reports.     |
+| exchangeTopMailTraffic | Turn ON or OFF the Exchange Online Mail Top Traffic reports. |
+| exchangeATPDetections  | Turn ON or OFF the Exchange Online Mail ATP detection reports. |
+
+| developer       |                                                              |
+| --------------- | ------------------------------------------------------------ |
+| graphApiVersion | DO NOT CHANGE!!! FOR FUTURE DEVELOPMENT USE ONLY.<br />This defines the Microsoft Graph API version used by the script. |
+
