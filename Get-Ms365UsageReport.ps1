@@ -3,7 +3,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0
+.VERSION 1.1
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -783,7 +783,7 @@ if ($reportSkypeForBusiness) {
     }
 
     $conferenceCount = $conferenceCount | Measure-Object -Property IM, "Audio/Video", "App Sharing", Web, "Dial-in/out 3rd Party", "Dial-in/out Microsoft" -sum
-    $conferenceCount = ($conferenceCount | Measure-Object Sum -sum).Sumd
+    $conferenceCount = ($conferenceCount | Measure-Object Sum -sum).Sum
 
     # Peer to peer count
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessPeerToPeerActivityCounts(period='D" + $($dPeriod) + "')"
