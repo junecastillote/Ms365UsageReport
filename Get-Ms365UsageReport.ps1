@@ -3,7 +3,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1
+.VERSION 1.2
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -28,6 +28,10 @@
 .EXTERNALSCRIPTDEPENDENCIES
 
 .RELEASENOTES
+
+Include:
+Reports > Usage > Active Users
+Reports > Usage > Activations > Users
 
 .PRIVATEDATA
 
