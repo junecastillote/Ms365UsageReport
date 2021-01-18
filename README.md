@@ -1,5 +1,11 @@
 # Ms365UsageReport PowerShell Script (1.v2)
 
+[![GitHub issues](https://img.shields.io/github/issues/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/issues)
+
+[![GitHub forks](https://img.shields.io/github/forks/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/network)
+
+[![GitHub license](https://img.shields.io/github/license/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/blob/main/LICENSE)
+
 - [Overview](#overview)
 - [What's New in Version 1.2](#whats-new-in-version-12)
   - [Breaking Change from older versions](#breaking-change-from-older-versions)
