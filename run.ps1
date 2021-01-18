@@ -1,0 +1,1 @@
+.\Get-Ms365UsageReport.ps1 -Config .\config.json

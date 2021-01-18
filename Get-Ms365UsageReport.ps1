@@ -1,5 +1,8 @@
 
 #Requires -Version 5.1
+#Requires -PSEdition Desktop
+#Requires -Modules @{ ModuleName="MSAL.PS"; ModuleVersion="4.16.0.4" }
+#Requires -Modules @{ ModuleName="ExchangeOnlineManagement"; ModuleVersion="2.0.3" }
 
 <#PSScriptInfo
 
@@ -30,8 +33,22 @@
 .RELEASENOTES
 
 Include:
-Reports > Usage > Active Users
-Reports > Usage > Activations > Users
+* [√] Reports > Usage > Active Users
+* [√] Reports > Usage > Activations > Users
+
+Add Config item:
+    * [√] tenantName
+    * [√] msGraphAuthType
+    * [√] msGraphAppID
+    * [√] msGraphAppKey
+    * [√] msGraphAppCertificateThumbprint
+    * [√] exchangeAuthType
+    * [√] exchangeAppID
+    * [√] exchangeAppCertificateThumbprint
+    * [√] exchangeCredentialFile
+
+Changed:
+    * [√] Get-Mailbox to Get-ExoMailbox
 
 .PRIVATEDATA
 
@@ -55,13 +72,11 @@ Reports > Usage > Activations > Users
 
 [cmdletbinding()]
 param (
-    [Parameter(Mandatory = $true)]
-    [string]$Config,
-    [parameter(Mandatory)]
-    [string]$GraphApiAccessToken
+    [Parameter(Mandatory)]
+    [string]$Config
 )
 #Region Functions
-Function Stop-TxnLogging {
+Function LogEnd {
     $txnLog = ""
     Do {
         try {
@@ -73,79 +88,56 @@ Function Stop-TxnLogging {
     } While ($txnLog -ne "stopped")
 }
 
-Function Start-TxnLogging {
+Function LogStart {
     param (
         [Parameter(Mandatory = $true)]
         [string]$logPath
     )
-    Stop-TxnLogging
+    LogEnd
     Start-Transcript $logPath -Force | Out-Null
 }
 #EndRegion Functions
 
-Stop-TxnLogging
+While (Get-PsSession -Name ExchangeOnline*) {
+    Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue
+}
+
+LogEnd
 
 #Enable TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $WarningPreference = "SilentlyContinue"
 $script_root = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition
 $scriptInfo = Test-ScriptFileInfo -Path $MyInvocation.MyCommand.Definition
-$headerParams = @{'Authorization' = "Bearer $($GraphApiAccessToken)" }
+
+# $headerParams = @{'Authorization' = "Bearer $($GraphApiAccessToken)" }
 
 # Create transcript folder
 $logFolder = "$($script_root)\transcript"
 $logFile = "$($logFolder)\log_$(Get-Date -format dd-MMM-yyyy_H_mm_ss).txt"
 if (!(Test-Path $logFolder)) {
-    Write-Verbose "$(Get-Date) : Creating Transcript folder $($logFolder)"
+    Write-Output "$(Get-Date) : Creating Transcript folder $($logFolder)"
     New-Item -ItemType Directory -Path $logFolder -Force | Out-Null
 }
+
+#region config
 
 # Import configuration
 try {
     $Config = (Resolve-Path $Config -ErrorAction STOP).Path.ToString()
 }
 catch {
-    Write-Verbose "$(Get-Date) : [SCRIPT TERMINATED] Cannot open the configuration file. Make sure that the file is accessible and valid."
-    Stop-TxnLogging
+    Write-Output "$(Get-Date) : [X] Cannot open the configuration file. Make sure that the file is accessible and valid."
+    LogEnd
     return $null
 }
 
 $options = Get-Content $Config -Raw | ConvertFrom-Json
+
 $transLog = $options.parameters.transLog
 
-# Start Transcript Logging
-if ($transLog) {
-    Write-Verbose "$(Get-Date) : Transcript - $($logFile)"
-    Start-TxnLogging -logPath $logFile
-}
-Write-Verbose "$(Get-Date) : Script Start"
 
-#organization details
-$uri = "https://graph.microsoft.com/beta/organization`?`$select=displayname"
-$organizationName = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams).Value.displayname
-Write-Verbose "$(Get-Date) : Your organization name is $organizationName"
-
-# Set report period
-[int]$dPeriod = $options.parameters.period
-
-[datetime]$today = (Get-Date).Date
-$startDate = ($today).AddDays(-$dPeriod)
-$endDate = $today
-Write-Verbose "$(Get-Date) : Setting Report Period to $dPeriod Days [$($startDate)] - [$($endDate)]"
-$fileSuffix = ('{0:yyyy-MMM-dd_}' -f ($startDate)) + ('{0:yyyy-MMM-dd}' -f ($endDate))
-
-# Create report folder for this period (if it does not exist)
-$reportFolder = "$($script_root)\reports\$($organizationName)\$fileSuffix"
-if (!(Test-Path $reportFolder)) {
-    Write-Verbose "$(Get-Date) : Creating Reports folder $($reportFolder)"
-    New-Item -ItemType Directory -Path $reportFolder | Out-Null
-}
-
-# Empty the report folder
-Get-ChildItem -Path "$($reportFolder)\*" -Exclude debug.log | Remove-Item -Force
-
-#region config
-Write-Verbose "$(Get-Date) : Using configuration from $($Config)"
+Write-Output "$(Get-Date) : Using configuration from $($Config)"
 
 $enabledReport = @()
 
@@ -157,7 +149,16 @@ $saveRawData = $options.parameters.saveRawData
 $graphApiVersion = $options.developer.graphApiVersion
 
 # License
-if ($reportLicenseAssigned = $options.reports.license) { $enabledReport += "License" }
+$reportLicenseAssigned = $options.reports.license
+if ($reportLicenseAssigned) { $enabledReport += "License" }
+
+# MS365 Active Users
+$reportMs365ActiveUsers = $options.reports.ms365ActiveUsers
+if ($reportMs365ActiveUsers) { $enabledReport += "MS365 Active Users" }
+
+# MS365 Activation
+$reportMs365ActivationUsers = $options.reports.ms365ActivationUsers
+if ($reportMs365ActivationUsers) { $enabledReport += "MS365 Activations" }
 
 # Exchange
 $reportMailboxUsageAndProvisioning = $options.reports.exchangeMailbox
@@ -177,24 +178,193 @@ if (    $reportMailboxUsageAndProvisioning -or `
 }
 
 # Sharepoint
-if ($reportSPO = $options.reports.sharepoint) { $enabledReport += "SharePoint" }
+$reportSPO = $options.reports.sharepoint
+if ($reportSPO) { $enabledReport += "SharePoint" }
 # Onedrive
-if ($reportOneDrive = $options.reports.onedrive) { $enabledReport += "OneDrive" }
+$reportOneDrive = $options.reports.onedrive
+if ($reportOneDrive) { $enabledReport += "OneDrive" }
 # SkypeForBusiness
-if ($reportSkypeForBusiness = $options.reports.SkypeForBusiness) { $enabledReport += "Skype for Business" }
+$reportSkypeForBusiness = $options.reports.SkypeForBusiness
+if ($reportSkypeForBusiness) { $enabledReport += "Skype for Business" }
 # Teams
-if ($reportTeams = $options.reports.teams) { $enabledReport += "Microsoft Teams" }
+$reportTeams = $options.reports.teams
+if ($reportTeams) { $enabledReport += "Microsoft Teams" }
+
+
+
 # Check if there's any enabled report. If none, stop transcript and exit script.
 if (!$enabledReport) {
-    Write-Verbose "$(Get-Date) : [SCRIPT TERMINATED] There are no reports enabled in your configuration file. Make sure to enable reports first then try again."
-    Stop-TxnLogging
+    Write-Output "$(Get-Date) : [X] There are no reports enabled in your configuration file. Make sure to enable reports first then try again."
+    LogEnd
     return $null
 }
 
 $enabledReportList = $enabledReport -join ","
 
-Write-Verbose "$(Get-Date) : Enabled reports are - $enabledReportList"
+Write-Output "$(Get-Date) : Enabled reports are - $enabledReportList"
 #endregion
+
+# Start Transcript Logging
+if ($transLog) {
+    Write-Output "$(Get-Date) : Transcript - $($logFile)"
+    LogStart -logPath $logFile
+}
+Write-Output "$(Get-Date) : Script Start"
+
+#Region MS Grap Authentication
+
+# tenantName check
+$tenantName = $options.auth.tenantName
+if (!($tenantName)) {
+    Write-Output "$(Get-Date) : [X] The tenantName value is missing from the configuration file $Config"
+    LogEnd
+    return $null
+}
+
+# msGraphAppKey check
+$msGraphAppID = $options.auth.msGraphAppID
+if (!($msGraphAppID)) {
+    Write-Output "$(Get-Date) : [X] The msGraphAppID value is missing from the configuration file $Config"
+    LogEnd
+    return $null
+}
+
+# if msGraphAuthType = 1 (Certificate)
+if ($options.auth.msGraphAuthType -eq 1) {
+    $msGraphAppCertificateThumbprint = $options.auth.msGraphAppCertificateThumbprint
+    if (!($msGraphAppCertificateThumbprint)) {
+        Write-Output "$(Get-Date) : [X] The msGraphAppCertificateThumbprint is missing from the configuration file $Config."
+        LogEnd
+        return $null
+    }
+    else {
+        try {
+            Write-Output "$(Get-Date) : Trying to acquire an access token using certificate [$msGraphAppCertificateThumbprint]."
+            $oAuth = Get-MsalToken -ClientId $msGraphAppID -TenantId $tenantName -ClientCertificate (Get-Item Cert:\CurrentUser\My\$msGraphAppCertificateThumbprint) -ErrorAction STOP
+            $headerParams = @{'Authorization' = "Bearer $($oAuth.AccessToken)" }
+            Write-Output "$(Get-Date) : [$([Char]8730)] Graph Graph API access token acquired."
+        }
+        catch {
+            Write-Output "$(Get-Date) : [X] Failed to get access token."
+            Write-Output "$(Get-Date) : $($_.Exception.Message)"
+            LogEnd
+            return $null
+        }
+    }
+}
+
+# if msGraphAuthType = 2 (App Key)
+if ($options.auth.msGraphAuthType -eq 2) {
+    # if msGraphAppKey is missing
+    $msGraphAppKey = $options.auth.msGraphAppKey
+    if (!($msGraphAppKey)) {
+        Write-Output "$(Get-Date) : [X] The msGraphAppKey is missing from the configuration file $Config."
+        LogEnd
+        return $null
+    }
+    else {
+        try {
+            Write-Output "$(Get-Date) : Trying to acquire an access token using app key."
+            $msGraphAppKeySecured = new-object securestring
+            $msGraphAppKey.ToCharArray() | ForEach-Object { $msGraphAppKeySecured.AppendChar($_) }
+            $oAuth = Get-MsalToken -ClientId $msGraphAppID -TenantId $tenantName -ClientSecret $msGraphAppKeySecured -ErrorAction STOP
+            $headerParams = @{'Authorization' = "Bearer $($oAuth.AccessToken)" }
+            Write-Output "$(Get-Date) : [$([Char]8730)] Graph Graph API access token acquired."
+        }
+        catch {
+            Write-Output "$(Get-Date) : [X] Failed to get access token."
+            Write-Output "$(Get-Date) : $($_.Exception.Message)"
+            LogEnd
+            return $null
+        }
+    }
+}
+#EndRegion
+#Region Exchange Authentication
+if ($enabledReport -contains 'Exchange') {
+    $exchangeAuthType = $options.auth.exchangeAuthType
+    if ($exchangeAuthType) {
+        if ($exchangeAuthType -eq 1) {
+            $exchangeAppID = $options.auth.exchangeAppID
+            $exchangeAppCertificateThumbprint = $options.auth.exchangeAppCertificateThumbprint
+            if (!($exchangeAppID) -or !($exchangeAppCertificateThumbprint)) {
+                Write-Output "$(Get-Date) : [X] The exchangeAppID or exchangeAppCertificateThumbprint values is missing from the configuration file $Config."
+                LogEnd
+                return $null
+            }
+            else {
+                try {
+                    Write-Output "$(Get-Date) : Trying to connect Exchange Online PowerShell using app certificate [$exchangeAppCertificateThumbprint]."
+                    Connect-ExchangeOnline -AppId $exchangeAppID -Organization $tenantName -CertificateThumbprint $exchangeAppCertificateThumbprint -ShowBanner:$false -ErrorAction STOP
+                    Write-Output "$(Get-Date) : [$([Char]8730)] Connected to Exchange Online PowerShell."
+                }
+                catch {
+                    Write-Output "$(Get-Date) : [X] Failed to connect to Exchange Online PowerShell. [X]"
+                    Write-Output "$(Get-Date) : $($_.Exception.Message)"
+                    LogEnd
+                    return $null
+                }
+            }
+        }
+        elseif ($exchangeAuthType -eq 2) {
+            $exchangeCredentialFile = $options.auth.exchangeCredentialFile
+            if (!($exchangeCredentialFile)) {
+                Write-Output "$(Get-Date) : [X] The exchangeCredentialFile value is missing from the configuration file $Config.`nUpdate your configuration to point exchangeCredentialFile to the right location of the credential file."
+                LogEnd
+                return $null
+            }
+            else {
+                try {
+                    $exchangeCredential = Import-CliXml $exchangeCredentialFile -ErrorAction STOP
+                    Write-Output "$(Get-Date) : Trying to connect Exchange Online PowerShell using credential."
+                    Connect-ExchangeOnline -Organization $tenantName -Credential $exchangeCredential -ShowBanner:$false -ErrorAction STOP
+                    Write-Output "$(Get-Date) : [$([Char]8730)] Connected to Exchange Online PowerShell."
+                }
+                catch {
+                    Write-Output "$(Get-Date) : [X] Failed to connect to Exchange Online PowerShell."
+                    Write-Output "$(Get-Date) : $($_.Exception.Message)"
+                    LogEnd
+                    return $null
+                }
+            }
+        }
+        else {
+            Write-Output "$(Get-Date) : [X] The exchangeAuthType value is not valid.`nValid values as 1, 2.`n * 1 = App + Certificate`n2 = Credential"
+            LogEnd
+            return $null
+        }
+    }
+    else {
+        Write-Output "$(Get-Date) : [X] The exchangeAuthType value is not valid.`nValid values as 1, 2.`n * 1 = App + Certificate`n2 = Credential"
+        LogEnd
+        return $null
+    }
+}
+#EndRegion
+
+#organization details
+$uri = "https://graph.microsoft.com/beta/organization`?`$select=displayname"
+$organizationName = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams).Value.displayname
+Write-Output "$(Get-Date) : Your organization name is $organizationName"
+
+# Set report period
+[int]$dPeriod = $options.parameters.period
+
+[datetime]$today = (Get-Date).Date
+$startDate = ($today).AddDays(-$dPeriod)
+$endDate = $today
+Write-Output "$(Get-Date) : Setting Report Period to $dPeriod Days [$($startDate)] - [$($endDate)]"
+$fileSuffix = ('{0:yyyy-MMM-dd_}' -f ($startDate)) + ('{0:yyyy-MMM-dd}' -f ($endDate))
+
+# Create report folder for this period (if it does not exist)
+$reportFolder = "$($script_root)\reports\$($organizationName)\$fileSuffix"
+if (!(Test-Path $reportFolder)) {
+    Write-Output "$(Get-Date) : Creating Reports folder $($reportFolder)"
+    New-Item -ItemType Directory -Path $reportFolder | Out-Null
+}
+
+# Empty the report folder
+Get-ChildItem -Path "$($reportFolder)\*" -Exclude debug.log | Remove-Item -Force
 
 # HTML report header
 $mailSubject = "[$($organizationName)] Microsoft 365 Usage Report for the period of " + ("{0:MMM-dd-yyyy}" -f $startDate ) + " to " + ("{0:MMMM-dd-yyyy}" -f $endDate)
@@ -269,6 +439,7 @@ $html += @'
 $html += '</style>'
 $html += "</head><body>"
 $html += '<table id="HeadingInfo">'
+$html += '<tr><th>'+ $organizationName +'</th></tr>'
 $html += '<tr><th>Microsoft 365 Usage Report</th></tr>'
 $html += '<tr><th>' + ("{0:MMM-dd-yyyy}" -f $startDate ) + ' to ' + ("{0:MMMM-dd-yyyy}" -f $endDate) + '</th></tr>'
 $html += '</table>'
@@ -277,8 +448,7 @@ $html += '</table>'
 # Licenses Assigned Report
 #==============================================
 if ($reportLicenseAssigned) {
-    Write-Verbose "$(Get-Date) : Processing Assigned License Report"
-    #$enabledReport += "License Assignment"
+    Write-Output "$(Get-Date) : Processing Assigned License Report"
 
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActiveUserDetail(period='D" + $($dPeriod) + "')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
@@ -308,11 +478,75 @@ if ($reportLicenseAssigned) {
 }
 
 #==============================================
+# MS365 Active Users Count Report
+#==============================================
+
+if ($reportMs365ActiveUsers) {
+    # Reports > Usage > Active Users
+    Write-Output "$(Get-Date) : Processing MS365 Active Users Report"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActiveUserCounts(period='D" + $($dPeriod) + "')"
+    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams -ContentType application/json) | ConvertFrom-Csv
+
+    $raw = "" | Select-Object Office365, Exchange, OneDrive, SharePoint, SkypeforBusiness, Yammer, Teams
+    $raw.Office365 = ($result | Measure-Object "Office 365" -sum).Sum
+    $raw.Exchange = ($result | Measure-Object Exchange -sum).Sum
+    $raw.OneDrive = ($result | Measure-Object OneDrive -sum).Sum
+    $raw.SharePoint = ($result | Measure-Object SharePoint -sum).Sum
+    $raw.SkypeforBusiness = ($result | Measure-Object "Skype for Business" -sum).Sum
+    $raw.Yammer = ($result | Measure-Object Yammer -sum).Sum
+    $raw.Teams = ($result | Measure-Object Teams -sum).Sum
+
+    $html += '<hr><table id="section"><tr><th class="data">MS365 Active Users</th></tr></table><hr>'
+    $html += '<table id="data">'
+    $html += '<tr><th width="15%">Office 365</th><td>' + ("{0:N0}" -f $raw.Office365) + '</td></tr>'
+    $html += '<tr><th width="15%">Exchange</th><td>' + ("{0:N0}" -f $raw.Exchange) + '</td></tr>'
+    $html += '<tr><th width="15%">OneDrive</th><td>' + ("{0:N0}" -f $raw.OneDrive) + '</td></tr>'
+    $html += '<tr><th width="15%">Sharepoint</th><td>' + ("{0:N0}" -f $raw.Sharepoint) + '</td></tr>'
+    $html += '<tr><th width="15%">SkypeForBusiness</th><td>' + ("{0:N0}" -f $raw.SkypeForBusiness) + '</td></tr>'
+    $html += '<tr><th width="15%">Yammer</th><td>' + ("{0:N0}" -f $raw.Yammer) + '</td></tr>'
+    $html += '<tr><th width="15%">Teams</th><td>' + ("{0:N0}" -f $raw.Teams) + '</td></tr>'
+
+    $html += '</table>'
+
+    if ($saveRawData) {
+        $raw | Export-Csv "$($reportFolder)\raw_Office365ActiveUserCounts.csv" -NoTypeInformation
+    }
+}
+
+#==============================================
+# MS365 Activations Users Count Report
+#==============================================
+
+if ($reportMs365ActivationUsers) {
+    # Reports > Usage > Active Users
+    Write-Output "$(Get-Date) : Processing MS365 Activation Users Count Report"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActivationsUserCounts"
+    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams -ContentType application/json) | ConvertFrom-Csv | Select-Object "Product Type", Assigned, Activated, "Shared Computer Activation"
+
+    $html += '<hr><table id="section"><tr><th class="data">MS365 Activations Users</th></tr></table><hr>'
+    $html += '<table id="data">'
+    $html += '<tr><th width="15%">Product Type</th><th>Assigned</th><th>Activated</th><th>Shared Computer Activation</th></tr>'
+
+    foreach ($detail in $result) {
+        $html += '<tr><th width="15%">' + ($detail."Product Type") +'</th>
+        <td>' + ("{0:N0}" -f $detail.Assigned) + '</td>
+        <td>' + ("{0:N0}" -f $detail.Activated) + '</td>
+        <td>' + ("{0:N0}" -f $detail."Shared Computer Activation") + '</td>
+        </tr>'
+    }
+    $html += '</table>'
+
+    if ($saveRawData) {
+        $result | Export-Csv "$($reportFolder)\raw_Office365ActivationsUserCounts.csv" -NoTypeInformation
+    }
+}
+
+#==============================================
 # Exchange Online Report
 #==============================================
 if ($reportMailboxUsageAndProvisioning) {
     #get mailbox usage
-    Write-Verbose "$(Get-Date) : Processing Mailbox Usage and Provisioning Report"
+    Write-Output "$(Get-Date) : Processing Mailbox Usage and Provisioning Report"
     #$enabledReport += "Exchange Online"
 
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageDetail(period='D" + $($dPeriod) + "')"
@@ -331,7 +565,8 @@ if ($reportMailboxUsageAndProvisioning) {
 
         # sometimes the 'Issue Warning Quota (Byte)' property is empty. If so, we need to get it from the mailbox using Get-Mailbox
         if (!($detail.'Issue Warning Quota (Byte)')) {
-            $mailbox = Get-Mailbox ($detail."User Principal Name") | Select-Object IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota
+            # v1.2 - changed to Get-ExoMailbox
+            $mailbox = Get-ExoMailbox ($detail."User Principal Name") -Properties IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota | Select-Object UserPrincipalName, IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota
             $raw.IssueWarningQuotaByte = [math]::Round(($mailbox.IssueWarningQuota.ToString().Split("(")[1].Split(" ")[0].Replace(",", "")), 2)
             $raw.ProhibitSendQuotaByte = [math]::Round(($mailbox.ProhibitSendQuota.ToString().Split("(")[1].Split(" ")[0].Replace(",", "")), 2)
             $raw.ProhibitSendReceiveQuotaByte = [math]::Round(($mailbox.ProhibitSendReceiveQuota.ToString().Split("(")[1].Split(" ")[0].Replace(",", "")), 2)
@@ -372,8 +607,9 @@ if ($reportMailboxUsageAndProvisioning) {
     }
 
     # Get deleted mailbox
-    Write-Verbose "$(Get-Date) : Getting list of deleted mailboxes"
-    $deletedMailbox = Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" |
+    Write-Output "$(Get-Date) : Getting list of deleted mailboxes"
+    # v1.2 - changed to Get-ExoMailbox
+    $deletedMailbox = Get-ExoMailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" -Properties UserPrincipalName, WhenSoftDeleted |
     Select-Object UserPrincipalName, WhenSoftDeleted |
     Sort-Object UserPrincipalName
 
@@ -403,7 +639,7 @@ if ($reportMailboxUsageAndProvisioning) {
     }
 
     # Get quota status
-    Write-Verbose "$(Get-Date) : Processing Mailbox Quota Report"
+    Write-Output "$(Get-Date) : Processing Mailbox Quota Report"
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageQuotaStatusMailboxCounts(period='D" + $($dPeriod) + "')"
     $raw = ((Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv)[0]
     $quota = "" | Select-Object UnderLimit, WarningIssued, SendProhibited, SendReceiveProhibited, Below25Percent
@@ -437,7 +673,7 @@ if ($reportMailboxUsageAndProvisioning) {
 
 # Email app report
 if ($reportEmailAppUsage) {
-    Write-Verbose "$(Get-Date) : Processing Email App Report"
+    Write-Output "$(Get-Date) : Processing Email App Report"
 
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getEmailAppUsageAppsUserCounts(period='D" + $($dPeriod) + "')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
@@ -462,7 +698,7 @@ if ($reportEmailAppUsage) {
 
 # Microsoft 365 Groups report
 if ($reportOffice365GroupsProvisioning) {
-    Write-Verbose "$(Get-Date) : Processing Office 365 Groups Report"
+    Write-Output "$(Get-Date) : Processing Office 365 Groups Report"
 
     # Get all current Microsoft 365 Groups only
     $liveGroups = @()
@@ -509,7 +745,7 @@ if ($reportOffice365GroupsProvisioning) {
 
 # Mail traffic (inbound/outbound)
 if ($reportMailTraffic) {
-    Write-Verbose "$(Get-Date) : Processing Mail Traffic Report"
+    Write-Output "$(Get-Date) : Processing Mail Traffic Report"
     $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
@@ -538,7 +774,7 @@ if ($reportMailTraffic) {
 
 # ATP Mail detections
 if ($reportATPDetections) {
-    Write-Verbose "$(Get-Date) : Processing ATP Mail Detection Report"
+    Write-Output "$(Get-Date) : Processing ATP Mail Detection Report"
 
     $atpSafeLinks_splat = @{
         StartDate   = $startDate
@@ -566,10 +802,10 @@ if ($reportATPDetections) {
 
 # Top 10 mail traffic reports
 if ($reportTopMailTraffic) {
-    Write-Verbose "$(Get-Date) : Processing Top Mail Traffic Report"
+    Write-Output "$(Get-Date) : Processing Top Mail Traffic Report"
 
     # Top mail report - ALL
-    Write-Verbose "$(Get-Date) : Getting Top Mail Traffic Raw Data"
+    Write-Output "$(Get-Date) :      --> Getting Top Mail Traffic Raw Data"
     $topMailReport = @()
     $pageSize = 5000
     $page = 0
@@ -581,27 +817,27 @@ if ($reportTopMailTraffic) {
     $topMailReport | Add-Member -MemberType ScriptProperty -Name TotalMessage -Value { [int]$this.MessageCount }
 
     # Top 10 Spam Recipients
-    Write-Verbose "$(Get-Date) : Getting Top 10 Spam Recipients"
+    Write-Output "$(Get-Date) :      --> Getting Top 10 Spam Recipients"
     $top10SpamRecipient = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopSpamUser' }
     $top10SpamRecipient = $top10SpamRecipient | Sort-Object MessageCount -Descending | Select-Object -First 10
 
     # Top 10 Malware Recipients
-    Write-Verbose "$(Get-Date) : Getting Top 10 Malware Recipients"
+    Write-Output "$(Get-Date) :      --> Getting Top 10 Malware Recipients"
     $top10MalwareRecipient = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopMalwareUser' }
     $top10MalwareRecipient = $top10MalwareRecipient | Sort-Object MessageCount -Descending | Select-Object -First 10
 
     # Top 10 Mail Senders
-    Write-Verbose "$(Get-Date) : Getting Top 10 Mail Senders"
+    Write-Output "$(Get-Date) :      --> Getting Top 10 Mail Senders"
     $top10MailSender = $topMailReport | Where-Object { $_.Direction -eq 'Outbound' -And $_.EventType -eq 'TopMailUser' }
     $top10MailSender = $top10MailSender | Sort-Object MessageCount -Descending | Select-Object -First 10
 
     # Top 10 Mail Recipients
-    Write-Verbose "$(Get-Date) : Getting Top 10 Mail Recipients"
+    Write-Output "$(Get-Date) :      --> Getting Top 10 Mail Recipients"
     $top10MailRecipient = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopMailUser' }
     $top10MailRecipient = $top10MailRecipient | Sort-Object MessageCount -Descending | Select-Object -First 10
 
     # Top 10 Malware
-    Write-Verbose "$(Get-Date) : Getting Top 10 Malware"
+    Write-Output "$(Get-Date) :      --> Getting Top 10 Malware"
     $top10Malware = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopMalware' }
     $top10Malware = $top10Malware | Sort-Object MessageCount -Descending | Select-Object -First 10
 
@@ -664,7 +900,7 @@ if ($reportTopMailTraffic) {
 #==============================================
 if ($reportSPO) {
 
-    Write-Verbose "$(Get-Date) : Processing SharePoint Report"
+    Write-Output "$(Get-Date) : Processing SharePoint Report"
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSharePointSiteUsageDetail(period='D" + $($dPeriod) + "')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $raw | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this."Last Activity Date" }
@@ -700,7 +936,7 @@ if ($reportSPO) {
 # OneDrive Report
 #==============================================
 if ($reportOneDrive) {
-    Write-Verbose "$(Get-Date) : Processing OneDrive Report"
+    Write-Output "$(Get-Date) : Processing OneDrive Report"
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOneDriveUsageAccountDetail(period='D" + $($dPeriod) + "')"
     $getOneDriveUsageAccountDetail = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $getOneDriveUsageAccountDetail | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this."Last Activity Date" }
@@ -735,7 +971,7 @@ if ($reportOneDrive) {
 # Sype for Business Report
 #==============================================
 if ($reportSkypeForBusiness) {
-    Write-Verbose "$(Get-Date) : Processing Skype For Business Report"
+    Write-Output "$(Get-Date) : Processing Skype For Business Report"
     # Total minutes (audio/video)
     # Organized minutes
     $uri1 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessOrganizerActivityMinuteCounts(period='D" + $($dPeriod) + "')"
@@ -833,7 +1069,7 @@ if ($reportSkypeForBusiness) {
 # Microsoft Teams Report
 #==============================================
 if ($reportTeams) {
-    Write-Verbose "$(Get-Date) : Processing MS Teams Report"
+    Write-Output "$(Get-Date) : Processing MS Teams Report"
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsUserActivityUserDetail(period='D" + $($dPeriod) + "')"
     $TeamsUserActivityUserDetail = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $TeamsUserActivityUserDetail | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this.'Last Activity Date' }
@@ -890,7 +1126,7 @@ $html += ($enabledReportList).Split(",") -join "<br />"
 $html += '<br /><br />'
 $html += '<b>[REPORT DETAILS]</b><br />'
 $html += 'Report Period: ' + $dPeriod + ' days<br />'
-$html += 'Generated from Server: ' + ($env:COMPUTERNAME) + '<br />'
+$html += 'Generated from Computer: ' + ($env:COMPUTERNAME) + '<br />'
 $html += 'Script File: ' + $MyInvocation.MyCommand.Definition + '<br />'
 $html += 'Config File: ' + $Config + '<br />'
 $html += '</p><p>'
@@ -898,11 +1134,11 @@ $html += '<a href="' + ($scriptInfo.PROJECTURI) + '">Ms365UsageReport v.' + ($sc
 $html += '</body></html>'
 $html | Out-File "$($reportFolder)\report.html"
 
-Write-Verbose "$(Get-Date) : Reports saved to $($reportFolder)"
+Write-Output "$(Get-Date) : Reports saved to $($reportFolder)"
 
 $sendEmail = $options.mail.sendEmail
 if ($sendEmail) {
-    Write-Verbose "$(Get-Date) : Sending email report"
+    Write-Output "$(Get-Date) : Sending email report"
     $fromAddress = $options.mail.fromAddress
     try {
         #message
@@ -970,7 +1206,7 @@ if ($sendEmail) {
 
         # attach log file if debug is enabled
         if ($transLog) {
-            Stop-TxnLogging
+            LogEnd
             [string]$base64_logFile = [convert]::ToBase64String((Get-Content $logFile -Encoding byte))
             $mailBody.message += @{
                 attachments = @(
@@ -985,19 +1221,19 @@ if ($sendEmail) {
         $mailBody = $mailBody | ConvertTo-JSON -Depth 4
         $ServicePoint = [System.Net.ServicePointManager]::FindServicePoint('https://graph.microsoft.com')
         $mailApiUri = "https://graph.microsoft.com/$graphApiVersion/users/$($fromAddress)/sendmail"
-        Invoke-RestMethod -Method Post -Uri $mailApiUri -Body $mailbody -Headers $headerParams -ContentType application/json
+        Invoke-RestMethod -Method Post -Uri $mailApiUri -Body $mailbody -Headers $headerParams -ContentType application/json -ErrorAction STOP
         $null = $ServicePoint.CloseConnectionGroup("")
-        Write-Verbose "$(Get-Date) : Sending Complete"
+        Write-Output "$(Get-Date) : [$([Char]8730)] Sending Complete"
     }
     catch {
-        Write-Verbose "$(Get-Date) : Sending failed"
-        $_.Exception | Format-List
-        Stop-TxnLogging
+        Write-Output "$(Get-Date) : [X] Sending failed"
+        Write-Output "$(Get-Date) : $($_.Exception)"
+        LogEnd
         [System.GC]::Collect()
         return $null
     }
 }
 
-Write-Verbose "$(Get-Date) : Script End"
-Stop-TxnLogging
+Write-Output "$(Get-Date) : Script End"
+LogEnd
 [System.GC]::Collect()
