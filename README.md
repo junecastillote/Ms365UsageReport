@@ -1,28 +1,33 @@
-# Ms365UsageReport PowerShell Script
+# Ms365UsageReport PowerShell Script (1.v2)
 
+- [Overview](#overview)
+- [What's New in Version 1.2](#whats-new-in-version-12)
+  - [Breaking Change from older versions](#breaking-change-from-older-versions)
 - [Requirements](#requirements)
 - [How to Get the Script](#how-to-get-the-script)
-  * [Files List](#files-list)
+  - [Files List](#files-list)
 - [Configuration](#configuration)
-  * [Make a New Configuration File](#make-a-new-configuration-file)
-  * [JSON Settings Explained](#json-settings-explained)
+  - [Make a New Configuration File](#make-a-new-configuration-file)
+  - [JSON Settings Explained](#json-settings-explained)
 - [How to Use the Script](#how-to-use-the-script)
-  * [Syntax](#syntax)
-  * [Running the Script](#running-the-script)
-  * [Script Output](#script-output)
-    + [Transcript File](#transcript-file)
-    + [Raw Data and HTML Report Files](#raw-data-and-html-report-files)
-    + [HTML Report](#html-report)
-    + [Email Report](#email-report)
+  - [Syntax](#syntax)
+  - [Running the Script](#running-the-script)
+  - [Script Output](#script-output)
+    - [Transcript File](#transcript-file)
+    - [Raw Data and HTML Report Files](#raw-data-and-html-report-files)
+    - [HTML Report](#html-report)
+    - [Email Report](#email-report)
 - [ANNEX](#annex)
-  * [Registering a New Azure AD App](#registering-a-new-azure-ad-app)
-    + [Adding the Required API Permissions](#adding-the-required-api-permissions)
-    + [Adding a Client Secret Key](#adding-a-client-secret-key)
-    + [Granting Admin Consent](#granting-admin-consent)
-  * [Generating Access Tokens](#generating-access-tokens)
+  - [Register a New Azure AD App](#register-a-new-azure-ad-app)
+    - [Adding the Required API Permissions](#adding-the-required-api-permissions)
+    - [OPTION 1: Adding a Client Secret](#option-1-adding-a-client-secret)
+    - [OPTION 2: Adding a Self-Signed Certificate](#option-2-adding-a-self-signed-certificate)
+      - [Generating a Self-Signed Client Certificate](#generating-a-self-signed-client-certificate)
+      - [Uploading the Certificate](#uploading-the-certificate)
+    - [Granting Admin Consent](#granting-admin-consent)
+  - [Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)
 
 ## Overview
-
 This PowerShell script exports the Microsoft 365 usage reports using the [*Microsoft Graph API v1.0*](https://docs.microsoft.com/en-us/graph/overview?view=graph-rest-1.0) and [*ExchangeOnlineManagement PowerShell Module*](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3). The results are saved locally and can also be sent by email.
 
 The reports that can be exported using this script are:
@@ -34,6 +39,9 @@ The reports that can be exported using this script are:
   - Skype for Business
   - Teams
   - Yammer
+- Microsoft 365
+  - Active User Counts **<span style="color:red">NEW!</span>**
+  - Activations User Counts **<span style="color:red">NEW!</span>**
 - Exchange Reports
   - Mailbox Status (Active/Inactive)
   - Mailbox Provisioning (Created/Deleted)
@@ -73,8 +81,34 @@ The reports that can be exported using this script are:
   - Total Private Chat Messages
   - Device Usage Distribution
 
-## Requirements
+## What's New in Version 1.2
 
+* Added two new reports.
+  * Ms365 Active User Counts.
+  * Ms365 Activation User Counts.
+
+* Updated the JSON configuration template to include the options to enable or disable the two new reports.
+
+  ![New reports added to version 1.2](images/image020.png)<br>New reports added to version 1.2
+
+  Related: [JSON Settings Explained](#json-settings-explained)
+
+* Updated the JSON configuration template to include Graph API and Exchange Online authentication options.
+
+  ![image-20210118212753782](images/image021.png)<br>Authentication details integrated to the JSON config template.
+
+  Related: [JSON Settings Explained](#json-settings-explained)
+
+### Breaking Change from older versions
+
+You no longer need to perform these two steps manually.
+
+1. Generate an access token.
+2. Connect to Exchange Online PowerShell.
+
+In version 1.2, these two steps above are already included in the script. But you will need to manually update your JSON configuration file to use the new template if you are coming from an older version. You're be fine if you're starting from scratch.
+
+## Requirements
 - A registered Azure AD (OAuth) App with the following settings:
 
   > *Annex:* [*Register a New Azure AD App*](#Register-a-New-Azure-AD-App)
@@ -86,33 +120,27 @@ The reports that can be exported using this script are:
     - *Directory.Read.All* - For getting the deleted Microsoft 365 Groups and users.
     - *Mail.Send* - For sending the report by email.
 
-- Windows PowerShell 5.1 or PowerShell 7.
+- Windows PowerShell 5.1.
 
 - The *[ExchangeOnlineManagement PowerShell Module](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/2.0.3)* must be installed on the computer where you will be running this script.
 
-- The [*MSAL.PS PowerShell Module*](https://www.powershellgallery.com/packages/MSAL.PS/4.19.0.1) must be installed on the computer where you will be running this script. This will be used to generate access tokens for Microsoft Graph API. (Refer to [Generate an Access Token](#Generating-Access-Tokens))
+- The [*MSAL.PS PowerShell Module*](https://www.powershellgallery.com/packages/MSAL.PS/4.19.0.1) must be installed on the computer where you will be running this script.
 
 - A valid mailbox that will be used for sending the report. A shared mailbox (no license) is recommended.
-
 ## How to Get the Script
 If you only plan to use the script, you can [*download the latest release*](https://github.com/junecastillote/Ms365UsageReport/releases).
 
 Otherwise, you can fork, [*clone*](https://github.com/junecastillote/Ms365UsageReport.git), or [*download*](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [*repository*](https://github.com/junecastillote/Ms365UsageReport). After downloading, extract the files to your preferred location.
 
 ![Ms365UsageReport Files](images/script_files.png)<br>Script files
-
 ### Files List
-
 - *Get-Ms365UsageReport.ps1* - this is the main script file.
 - *config_template.json* - this is the configuration file template.
 - *LICENSE* - the license document for this repository.
 - *README.md* - this document that you are reading right now.
 - *.gitattributes* and *.gitignore* - ignore these files, they don't affect the script.
-
 ## Configuration
-
 ### Make a New Configuration File
-
 The script uses configuration details from a JSON document. You can have many configuration files with different settings if you want.
 
 To create a new configuration, make a copy of the *config_template.json*. I recommend for you to use your Microsoft 365 tenant domain as the name of the configuration file for easier identification.
@@ -122,13 +150,23 @@ To create a new configuration, make a copy of the *config_template.json*. I reco
 > You can use any name for the new configuration file. The content is what's important, not the file name.
 
 ### JSON Settings Explained
-
 Open your JSON file using any text editor. It would be best to use an editor that has syntax/language support like [*Notepad++*](https://notepad-plus-plus.org/downloads/), [*Atom*](https://atom.io/), or [*Visual Studio Code*](https://code.visualstudio.com/).
 
 The code below shows the default content of the configuration JSON file. The meaning of each setting is explained in the next section.
 
 ```JSON
 {
+    "auth": {
+        "tenantName": "<tenant>.onmicrosoft.com",
+        "msGraphAuthType": "1",
+        "msGraphAppID": "",
+        "msGraphAppKey": "",
+        "msGraphAppCertificateThumbprint": "",
+        "exchangeAuthType": "1",
+        "exchangeAppID": "",
+        "exchangeAppCertificateThumbprint": "",
+        "exchangeCredentialFile": ""
+    },
     "parameters": {
         "transLog": "1",
         "saveRawData": "1",
@@ -152,13 +190,28 @@ The code below shows the default content of the configuration JSON file. The mea
         "exchangeApp": "1",
         "exchangeTopMailTraffic": "1",
         "exchangeMailTraffic": "1",
-        "exchangeATPDetections": "1"
+        "exchangeATPDetections": "1",
+        "ms365ActiveUsers": "1",
+        "ms365ActivationUsers": "1"
     },
     "developer": {
-        "graphApiVersion": "beta"
+        "graphApiVersion": "beta",
+        "scriptCompatibleVersion": "1.2"
     }
 }
 ```
+
+| AUTH                                 |                                                              |
+| ------------------------------------ | ------------------------------------------------------------ |
+| **tenantName**                       | This is your Microsoft 365 tenant's organization name.<br />Example: *contoso.onmicrosoft.com* |
+| **msGraphAuthType**                  | Determines the Graph API credential type.<br /><br />`"msGraphAuthType": "1"` = Use Certificate to authenticate<br />`"msGraphAuthType": "2"` = Use Client Secret to authenticate |
+| **msGraphAppID**                     | This is the registered app's Application ID. (refer to *[Register a New Azure AD App](#register-a-new-azure-ad-app)*). |
+| **msGraphAppKey**                    | This is the registered app's Secret Key. (refer to *[Adding a Client Secret](#option-1-adding-a-client-secret)*). |
+| **msGraphAppCertificateThumbprint**  | This is the registered app's Certificate Thumbprint. (refer to *[Adding a Self-Signed Certificate](#option-2-adding-a-self-signed-certificate)*). |
+| **exchangeAuthType**                 | Determines the Exchange Credential authentication type.<br /><br />`"exchangeAuthType": "1"` = Use Certificate to authenticate<br />`"exchangeAuthType": "2"` = Use Basic Auth (Username+Password) Credential to authenticate |
+| **exchangeAppID**                    | This is the registered app's Application ID.<br />Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br /><br /><br />This is only required if you're using If you're using `"exchangeAuthType": "1"`<br />If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this. |
+| **exchangeAppCertificateThumbprint** | This is the registered app's Certificate Thumbprint.<br />Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br /><br /><br />This is only required if you're using If you're using `"exchangeAuthType": "1"`<br /><br />Make sure that the certificate is in the personal certificate store and uploaded to the registered Exchange app in Azure AD.<br /><br />If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this. |
+| **exchangeCredentialFile**           | The file path to the encrypted credential file.<br /><br />Refer to: *[Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)*<br /><br />When you enter the path in the JSON configuration, make sure to use double-backslash.<br /><br />Example:<br />`"exchangeCredentialFile": "C:\\temp\\cred.xml"` |
 
 | PARAMETERS      |                                                              |
 | --------------- | ------------------------------------------------------------ |
@@ -196,32 +249,26 @@ The code below shows the default content of the configuration JSON file. The mea
 
 ### Syntax
 
-The `Get-Ms365UsageReport.ps1` script accepts two (2) mandatory parameters.
+The `Get-Ms365UsageReport.ps1` script accepts two (1) mandatory parameter.
 
 - `-Config` - This parameter accepts the path of the [JSON configuration](#configuration) file.
-- `-GraphApiAccessToken` - This parameter access the MS Graph API pre-authenticated token value.
 
 ```PowerShell
-.\Get-Ms365UsageReport.ps1 -Config <PATH TO JSON FILE> -GraphApiAccessToken <ACCESS TOKEN> -Verbose
+.\Get-Ms365UsageReport.ps1 -Config <PATH TO JSON FILE>
 ```
 
 ### Running the Script
 
 1. Open PowerShell and change the working directory to where you saved the script.
-
-2. [Generate an Access Token](#Generating-Access-Tokens)
-
-3. Connect to Exchange Online PowerShell using [`Connect-ExchangeOnline`](https://docs.microsoft.com/en-us/powershell/module/exchange/connect-exchangeonline?view=exchange-ps)
-
-4. Run the script. In the example below, the configuration file used is *poshlab.ml.json* which is in the same folder as the script. And the access token is stored in the `$token.AccessToken` variable.
+2. Run the script. In the example below, the configuration file used is *poshlab.ml.json* which is in the same folder as the script.
 
    ```powershell
-   .\Get-Ms365UsageReport.ps1 -config .\poshlab.ml.json -GraphApiAccessToken $token.AccessToken -Verbose
+   .\Get-Ms365UsageReport.ps1 -config .\poshlab.ml.json
    ```
 
 You should see a screen output similar to the one below.
 
-![Run Script](images/run_script.png)
+![Run Script](images/run_script.png)<br>Running the script
 
 ### Script Output
 
@@ -291,7 +338,9 @@ From the list of permissions, search for and enable the following permissions.
 
 Once you're done selecting the permissions, click on the **Add permissions** button.
 
-#### Adding a Client Secret Key
+Next, you have two options as to how your application can get authorization. Using a [Client Secret](#option-1-adding-a-client-secret) or a [Self-Signed Certificate](#option-2-adding-a-self-signed-certificate).
+
+#### OPTION 1: Adding a Client Secret
 
 > *Note: You can use either a Certificate or a Client Secret for API authentication. This example shows you only how to create a client secret.*
 
@@ -308,6 +357,49 @@ In the **Add a client secret** page:
 Once the secret has been created, it is important to copy and save the key.
 
 ![azapp11](images/azApp11.png)
+
+#### OPTION 2: Adding a Self-Signed Certificate
+
+> *Note: You can use either a Certificate or a Client Secret for API authentication. This example shows you only how to create a certificate.*
+
+##### Generating a Self-Signed Client Certificate
+
+Copy the code below and run it in PowerShell. The script will create a new self-signed certificate in the personal certificate store with a validity of five (5) years. Then, exports the DER-encoded `ms365UsageReport.cer` file to the current working directory.
+
+```PowerShell
+# Create a self-sign certificate in the personal certificate store with 5-year validity.
+$certSplat = @{
+	Subject = 'CN=ms365UsageReport'
+	NotBefore = ((Get-Date).AddDays(-1))
+	NotAfter = ((Get-Date).AddYears(5))
+	CertStoreLocation = "Cert:\CurrentUser\My"
+}
+$selfSignedCertificate = New-SelfSignedCertificate @certSplat
+
+# Export the certificate (.CER)
+Export-Certificate -Cert $selfSignedCertificate -FilePath .\ms365UsageReport.cer
+```
+
+After running the code, you can see the new certificate is in the personal certificate store.
+
+![image-20210118230431617](images/image022.png)<br>
+The new self-signed certificate in the personal certificate store
+
+![image-20210118230618692](images/image023.png)<br>
+The new self-signed certificate exported to a file
+
+##### Uploading the Certificate
+
+1. Go to **Certificates & secrets** and click on the **Upload certificate** button.
+2. Click the browse button.
+3. Locate the certificate file and click **Open**.
+4. Click **Add**.
+
+![click upload certificate](images/image024.png)<br>Uploading a certificate
+
+You should now see the certificate was uploaded. Copy the **Thumbprint** value.
+
+![new certificate uploaded](images/image025.png)<br>The certificate is uploaded
 
 #### Granting Admin Consent
 
@@ -331,29 +423,11 @@ Now you should have the following details available:
 * Secret Key
 * Tenant ID
 
-### Generating Access Tokens
+### Creating an Encrypted Exchange Online Credentials File
 
-To generate access tokens for Graph API, you should already have the Client ID, Secret Key, and Tenant ID of your [registered Azure AD App](#Registering-a-New-Azure-AD-App).
+If you're using a username + password to authenticate to Exchange Online, then you'll need to save your encrypted credentials to a file.
 
-Use the code below to generate an access token. Make sure to change the values of the `$ClientID`, `$ClientSecret`, `$TenantID` variables.
+1. In PowerShell, enter this command - `Get-Credential | Export-CliXml <PATH\TO\FILE.xml>`.
+2. When prompted, enter the username and password of the Exchange Online credential to use.
 
-```PowerShell
-Import-Module MSAL.PS
-
-# Define your API details
-$ClientID = 'Client ID'
-$ClientSecret = 'Secret Key'
-$TenantID = 'Tenant ID or Domain (org-name.onmicrosoft.com)'
-
-# Get the access token
-$token = Get-MsalToken -ClientID $ClientID `
--TenantID $TenantID `
--ClientSecret (ConvertTo-SecureString $ClientSecret -AsPlainText -Force)
-```
-
-After you run the command above, the token is saved to the `$token.AccessToken` variable. See the demo below for reference.
-
-![Get-MsalToken](images/get-msaltoken.gif)
-
-> *Note: Access Tokens are only valid for one (1) hour from the time it was generated.*
-
+![Saving exchange credentials](images/image026.png)<br>Creating an Encrypted Exchange Online Credentials File
