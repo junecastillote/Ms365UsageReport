@@ -6,7 +6,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2
+.VERSION 1.2.1
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -439,7 +439,7 @@ $html += @'
 $html += '</style>'
 $html += "</head><body>"
 $html += '<table id="HeadingInfo">'
-$html += '<tr><th>'+ $organizationName +'</th></tr>'
+$html += '<tr><th>' + $organizationName + '</th></tr>'
 $html += '<tr><th>Microsoft 365 Usage Report</th></tr>'
 $html += '<tr><th>' + ("{0:MMM-dd-yyyy}" -f $startDate ) + ' to ' + ("{0:MMMM-dd-yyyy}" -f $endDate) + '</th></tr>'
 $html += '</table>'
@@ -449,11 +449,14 @@ $html += '</table>'
 #==============================================
 if ($reportLicenseAssigned) {
     Write-Output "$(Get-Date) : Processing Assigned License Report"
-
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActiveUserDetail(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Office 365 user count and assigned licenses"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActiveUserDetail(period='D$($dPeriod)')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
-    $license = "" | Select-Object Exchange, Sharepoint, OneDrive, SkypeForBusiness, Yammer, Teams
+    $license = "" | Select-Object TotalUsers, TotalUsersLicensed, TotalUsersUnlicensed, Exchange, Sharepoint, OneDrive, SkypeForBusiness, Yammer, Teams
+    $license.TotalUsers = $raw.Count
+    $license.TotalUsersLicensed = ($raw | Where-Object { $_."Assigned Products" }).count
+    $license.TotalUsersUnlicensed = ($raw | Where-Object { !($_."Assigned Products") }).count
     $license.Exchange = ($raw | Where-Object { $_."Has Exchange License" -eq $true }).count
     $license.Sharepoint = ($raw | Where-Object { $_."Has Sharepoint License" -eq $true }).count
     $license.OneDrive = ($raw | Where-Object { $_."Has OneDrive License" -eq $true }).count
@@ -461,8 +464,11 @@ if ($reportLicenseAssigned) {
     $license.Yammer = ($raw | Where-Object { $_."Has Yammer License" -eq $true }).count
     $license.Teams = ($raw | Where-Object { $_."Has Teams License" -eq $true }).count
 
-    $html += '<hr><table id="section"><tr><th class="data">Assigned Licenses</th></tr></table><hr>'
+    $html += '<hr><table id="section"><tr><th class="data">Users and Assigned Licenses</th></tr></table><hr>'
     $html += '<table id="data">'
+    $html += '<tr><th width="15%">Total Users</th><td>' + ("{0:N0}" -f $license.TotalUsers) + '</td></tr>'
+    $html += '<tr><th width="15%">Licensed Users</th><td>' + ("{0:N0}" -f $license.TotalUsersLicensed) + '</td></tr>'
+    $html += '<tr><th width="15%">Unlicensed Users</th><td>' + ("{0:N0}" -f $license.TotalUsersUnlicensed) + '</td></tr>'
     $html += '<tr><th width="15%">Exchange</th><td>' + ("{0:N0}" -f $license.Exchange) + '</td></tr>'
     $html += '<tr><th width="15%">Sharepoint</th><td>' + ("{0:N0}" -f $license.Sharepoint) + '</td></tr>'
     $html += '<tr><th width="15%">OneDrive</th><td>' + ("{0:N0}" -f $license.OneDrive) + '</td></tr>'
@@ -472,7 +478,6 @@ if ($reportLicenseAssigned) {
     $html += '</table>'
 
     if ($saveRawData) {
-        #$license | Export-Csv "$($reportFolder)\summary_assignedLicenses.csv" -NoTypeInformation
         $raw | Export-Csv "$($reportFolder)\raw_Office365ActiveUserDetail.csv" -NoTypeInformation
     }
 }
@@ -482,21 +487,21 @@ if ($reportLicenseAssigned) {
 #==============================================
 
 if ($reportMs365ActiveUsers) {
-    # Reports > Usage > Active Users
-    Write-Output "$(Get-Date) : Processing MS365 Active Users Report"
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActiveUserCounts(period='D" + $($dPeriod) + "')"
-    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams -ContentType application/json) | ConvertFrom-Csv
+    Write-Output "$(Get-Date) : Processing Office 365 Active Users Report"
+    Write-Output "$(Get-Date) :      --> Getting Office 365 active user count per service"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ServicesUserCounts(period='D$($dPeriod)')"
+    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
     $raw = "" | Select-Object Office365, Exchange, OneDrive, SharePoint, SkypeforBusiness, Yammer, Teams
-    $raw.Office365 = ($result | Measure-Object "Office 365" -sum).Sum
-    $raw.Exchange = ($result | Measure-Object Exchange -sum).Sum
-    $raw.OneDrive = ($result | Measure-Object OneDrive -sum).Sum
-    $raw.SharePoint = ($result | Measure-Object SharePoint -sum).Sum
-    $raw.SkypeforBusiness = ($result | Measure-Object "Skype for Business" -sum).Sum
-    $raw.Yammer = ($result | Measure-Object Yammer -sum).Sum
-    $raw.Teams = ($result | Measure-Object Teams -sum).Sum
+    $raw.Office365 = $result."office 365 active"
+    $raw.Exchange = $result."exchange Active"
+    $raw.OneDrive = $result."oneDrive Active"
+    $raw.SharePoint = $result."sharePoint Active"
+    $raw.SkypeforBusiness = $result."skype For Business Active"
+    $raw.Yammer = $result."yammer Active"
+    $raw.Teams = $result."teams Active"
 
-    $html += '<hr><table id="section"><tr><th class="data">MS365 Active Users</th></tr></table><hr>'
+    $html += '<hr><table id="section"><tr><th class="data">Office 365 Active Users</th></tr></table><hr>'
     $html += '<table id="data">'
     $html += '<tr><th width="15%">Office 365</th><td>' + ("{0:N0}" -f $raw.Office365) + '</td></tr>'
     $html += '<tr><th width="15%">Exchange</th><td>' + ("{0:N0}" -f $raw.Exchange) + '</td></tr>'
@@ -509,7 +514,7 @@ if ($reportMs365ActiveUsers) {
     $html += '</table>'
 
     if ($saveRawData) {
-        $raw | Export-Csv "$($reportFolder)\raw_Office365ActiveUserCounts.csv" -NoTypeInformation
+        $raw | Export-Csv "$($reportFolder)\raw_Office365ServicesUserCounts.csv" -NoTypeInformation
     }
 }
 
@@ -518,20 +523,20 @@ if ($reportMs365ActiveUsers) {
 #==============================================
 
 if ($reportMs365ActivationUsers) {
-    # Reports > Usage > Active Users
-    Write-Output "$(Get-Date) : Processing MS365 Activation Users Count Report"
+    Write-Output "$(Get-Date) : Processing Office 365 Activations Users Count Report"
+    Write-Output "$(Get-Date) :      --> Getting Office 365 app activations count"
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActivationsUserCounts"
-    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams -ContentType application/json) | ConvertFrom-Csv | Select-Object "Product Type", Assigned, Activated, "Shared Computer Activation"
+    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
-    $html += '<hr><table id="section"><tr><th class="data">MS365 Activations Users</th></tr></table><hr>'
+    $html += '<hr><table id="section"><tr><th class="data">Office 365 Activations Users</th></tr></table><hr>'
     $html += '<table id="data">'
     $html += '<tr><th width="15%">Product Type</th><th>Assigned</th><th>Activated</th><th>Shared Computer Activation</th></tr>'
 
     foreach ($detail in $result) {
-        $html += '<tr><th width="15%">' + ($detail."Product Type") +'</th>
-        <td>' + ("{0:N0}" -f $detail.Assigned) + '</td>
-        <td>' + ("{0:N0}" -f $detail.Activated) + '</td>
-        <td>' + ("{0:N0}" -f $detail."Shared Computer Activation") + '</td>
+        $html += '<tr><th width="15%">' + ($detail."product Type") + '</th>
+        <td>' + ("{0:N0}" -f $detail.assigned) + '</td>
+        <td>' + ("{0:N0}" -f $detail.activated) + '</td>
+        <td>' + ("{0:N0}" -f $detail."shared Computer Activation") + '</td>
         </tr>'
     }
     $html += '</table>'
@@ -547,10 +552,10 @@ if ($reportMs365ActivationUsers) {
 if ($reportMailboxUsageAndProvisioning) {
     #get mailbox usage
     Write-Output "$(Get-Date) : Processing Mailbox Usage and Provisioning Report"
-    #$enabledReport += "Exchange Online"
+    Write-Output "$(Get-Date) :      --> Getting Exchange Online mailbox usage and status"
 
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageDetail(period='D" + $($dPeriod) + "')"
-    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams -ContentType application/json) | ConvertFrom-Csv
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageDetail(period='D$($dPeriod)')"
+    $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $mailboxUsageAndProvisioningData = @()
     foreach ($detail in $result) {
         $raw = "" | Select-Object UserPrincipalName, DisplayName, IsDeleted, DeletedDate, CreatedDate, LastActivityDate, ItemCount, StorageUsedByte, IssueWarningQuotaByte, ProhibitSendQuotaByte, ProhibitSendReceiveQuotaByte, IsBelow25Percent, IsOverQuota, IsInActive
@@ -563,7 +568,7 @@ if ($reportMailboxUsageAndProvisioning) {
         $raw.ItemCount = [double]$detail."Item Count"
         $raw.StorageUsedByte = [double]$detail."Storage Used (Byte)"
 
-        # sometimes the 'Issue Warning Quota (Byte)' property is empty. If so, we need to get it from the mailbox using Get-Mailbox
+        # sometimes the 'Issue Warning Quota (Byte)' property is empty. If so, we need to get it from the mailbox using Get-ExoMailbox
         if (!($detail.'Issue Warning Quota (Byte)')) {
             # v1.2 - changed to Get-ExoMailbox
             $mailbox = Get-ExoMailbox ($detail."User Principal Name") -Properties IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota | Select-Object UserPrincipalName, IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota
@@ -583,9 +588,6 @@ if ($reportMailboxUsageAndProvisioning) {
         elseif ($raw.LastActivityDate -lt $startDate) {
             $raw.IsInActive = $true
         }
-        # elseif ((New-TimeSpan -Start $raw.LastActivityDate -End $today).Days -ge 30) {
-        #     $raw.IsInActive = $true
-        # }
         else {
             $raw.IsInActive = $false
         }
@@ -607,7 +609,7 @@ if ($reportMailboxUsageAndProvisioning) {
     }
 
     # Get deleted mailbox
-    Write-Output "$(Get-Date) : Getting list of deleted mailboxes"
+    Write-Output "$(Get-Date) :      --> Getting list of deleted mailboxes"
     # v1.2 - changed to Get-ExoMailbox
     $deletedMailbox = Get-ExoMailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" -Properties UserPrincipalName, WhenSoftDeleted |
     Select-Object UserPrincipalName, WhenSoftDeleted |
@@ -632,7 +634,6 @@ if ($reportMailboxUsageAndProvisioning) {
     $html += '</table>'
 
     if ($saveRawData) {
-        #$exchangeMailboxStatus | Export-Csv "$($reportFolder)\summary_exchangeUsageAndProvisioning.csv" -NoTypeInformation
         $result | Export-Csv "$($reportFolder)\raw_getMailboxUsageDetail.csv" -NoTypeInformation
         $mailboxUsageAndProvisioningData | Export-csv "$($reportFolder)\raw_MailboxUsageDetail.csv" -NoTypeInformation
         $deletedMailbox | Export-Csv "$($reportFolder)\raw_exchangeDeletedMailbox.csv" -NoTypeInformation
@@ -640,7 +641,8 @@ if ($reportMailboxUsageAndProvisioning) {
 
     # Get quota status
     Write-Output "$(Get-Date) : Processing Mailbox Quota Report"
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageQuotaStatusMailboxCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Exchange Online mailbox quota status"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageQuotaStatusMailboxCounts(period='D$($dPeriod)')"
     $raw = ((Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv)[0]
     $quota = "" | Select-Object UnderLimit, WarningIssued, SendProhibited, SendReceiveProhibited, Below25Percent
     [int]$quota.UnderLimit = $raw."Under Limit"
@@ -651,7 +653,8 @@ if ($reportMailboxUsageAndProvisioning) {
 
 
     # EXO Storage Used
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageStorage(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Exchange Online storage usage (tenant)"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageStorage(period='D$($dPeriod)')"
     $exoStorage = ((Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv)
 
     $html += '<hr><table id="section"><tr><th class="data">Exchange Mailbox Storage and Quota</th></tr></table><hr>'
@@ -665,17 +668,15 @@ if ($reportMailboxUsageAndProvisioning) {
     $html += '</table>'
 
     if ($saveRawData) {
-        #$quota | Export-Csv "$($reportFolder)\summary_MailboxUsageQuota.csv" -NoTypeInformation
         $raw | Export-Csv "$($reportFolder)\raw_MailboxUsageQuotaStatusMailboxCounts.csv" -NoTypeInformation
-        #$exoStorage | Export-Csv "$($reportFolder)\summary_MailboxUsageStorage.csv" -NoTypeInformation
     }
 }
 
 # Email app report
 if ($reportEmailAppUsage) {
     Write-Output "$(Get-Date) : Processing Email App Report"
-
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getEmailAppUsageAppsUserCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Exchange Online email app distribution count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getEmailAppUsageAppsUserCounts(period='D$($dPeriod)')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
     $html += '<hr><table id="section"><tr><th class="data">Exchange Mail App Usage</th></tr></table><hr>'
@@ -701,6 +702,7 @@ if ($reportOffice365GroupsProvisioning) {
     Write-Output "$(Get-Date) : Processing Office 365 Groups Report"
 
     # Get all current Microsoft 365 Groups only
+    Write-Output "$(Get-Date) :      --> Getting all Office 365 groups"
     $liveGroups = @()
     $uri = "https://graph.microsoft.com/$graphApiVersion/groups`?`$filter=groupTypes/any(c:c+eq+'Unified')`&`$select=mailNickname,deletedDateTime,createdDateTime"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams)
@@ -711,7 +713,7 @@ if ($reportOffice365GroupsProvisioning) {
             $liveGroups += $raw.value
         }
     }
-
+    Write-Output "$(Get-Date) :      --> Getting list of deleted Office 365 groups"
     # Get all deleted Microsoft 365 Groups only
     $deletedGroups = @()
     $uri = "https://graph.microsoft.com/$graphApiVersion/directory/deletedItems/microsoft.graph.group`?`$filter=groupTypes/any(c:c+eq+'Unified')`&`$select=mailNickname,deletedDateTime,createdDateTime"
@@ -737,7 +739,6 @@ if ($reportOffice365GroupsProvisioning) {
     $html += '</table>'
 
     if ($saveRawData) {
-        #$o365Groups | Export-Csv "$($reportFolder)\summary_exchangeOffice365Groups.csv" -NoTypeInformation
         $liveGroups | Export-Csv "$($reportFolder)\raw_exchangeOffice365LiveGroups.csv" -NoTypeInformation
         $deletedGroups | Export-Csv "$($reportFolder)\raw_exchangeOffice365DeletedGroups.csv" -NoTypeInformation -Append
     }
@@ -746,6 +747,7 @@ if ($reportOffice365GroupsProvisioning) {
 # Mail traffic (inbound/outbound)
 if ($reportMailTraffic) {
     Write-Output "$(Get-Date) : Processing Mail Traffic Report"
+    Write-Output "$(Get-Date) :      --> Getting mail traffic data"
     $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
@@ -767,7 +769,6 @@ if ($reportMailTraffic) {
     $html += '</table>'
 
     if ($saveRawData) {
-        #$mailTraffic | Export-Csv "$($reportFolder)\summary_exchangeMailTraffic.csv" -NoTypeInformation
         $mailTrafficData | Export-Csv "$($reportFolder)\raw_exchangeMailTraffic.csv" -NoTypeInformation
     }
 }
@@ -781,7 +782,9 @@ if ($reportATPDetections) {
         EndDate     = (Get-Date $endDate).AddDays(-1)
         AppNameList = @('Email Client', 'Outlook')
     }
+    Write-Output "$(Get-Date) :      --> Getting ATP SafeLinks blocked message count"
     $atpSafeLinks = Get-SafeLinksAggregateReport @atpSafeLinks_splat | Where-Object { $_.Action -eq 'Blocked' }
+    Write-Output "$(Get-Date) :      --> Getting ATP SafeAttachments blocked message count"
     $atpSafeAttachments = Get-MailTrafficATPReport -StartDate $startDate -EndDate $endDate -EventType 'ATP safe attachments'
     $atpMailTraffic = "" | Select-Object atpSafeLinks, atpSafeAttachments
     $atpMailTraffic.atpSafeLinks = $atpSafeLinks.MessageCount
@@ -796,7 +799,6 @@ if ($reportATPDetections) {
     if ($saveRawData) {
         $atpSafeLinks | Export-Csv "$($reportFolder)\raw_exchangeAtpSafeLinks.csv" -NoTypeInformation
         $atpSafeAttachments | Export-Csv "$($reportFolder)\raw_exchangeAtpSafeAttachments.csv" -NoTypeInformation
-        #$atpMailTraffic | Export-Csv "$($reportFolder)\summary_atpMailTraffic.csv" -NoTypeInformation
     }
 }
 
@@ -888,11 +890,6 @@ if ($reportTopMailTraffic) {
 
     if ($saveRawData) {
         $topMailReport | Export-Csv "$($reportFolder)\raw_exchangeTopMailTraffic.csv" -NoTypeInformation
-        # $top10SpamRecipient | Export-Csv "$($reportFolder)\summary_top10SpamRecipient.csv" -NoTypeInformation
-        # $top10MalwareRecipient | Export-Csv "$($reportFolder)\summary_top10MalwareRecipient.csv" -NoTypeInformation
-        # $top10MailSender | Export-Csv "$($reportFolder)\summary_top10MailSender.csv" -NoTypeInformation
-        # $top10MailRecipient | Export-Csv "$($reportFolder)\summary_top10MailRecipient.csv" -NoTypeInformation
-        # $top10Malware | Export-Csv "$($reportFolder)\summary_top10Malware.csv" -NoTypeInformation
     }
 }
 #==============================================
@@ -901,7 +898,8 @@ if ($reportTopMailTraffic) {
 if ($reportSPO) {
 
     Write-Output "$(Get-Date) : Processing SharePoint Report"
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSharePointSiteUsageDetail(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SharePoint Sites Usage"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSharePointSiteUsageDetail(period='D$($dPeriod)')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $raw | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this."Last Activity Date" }
     $spoSites = "" | Select-Object Total, Active, Inactive
@@ -909,7 +907,8 @@ if ($reportSPO) {
     $spoSites.Inactive = ($raw | Where-Object { $_.LastActivityDate -lt ($today.AddDays(-$dPeriod)) -and $_.'Is Deleted' -eq $false }).Count
     $spoSites.Active = ($raw | Where-Object { $_.LastActivityDate -ge ($today.AddDays(-$dPeriod)) -and $_.'Is Deleted' -eq $false }).Count
 
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSharePointSiteUsageStorage(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SharePoint Storage Usage"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSharePointSiteUsageStorage(period='D$($dPeriod)')"
     $spoStorage = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $spoStorage | Add-Member -MemberType ScriptProperty -Name ReportDate -Value { [datetime]$this."Report Date" }
     $spoStorage | Add-Member -MemberType ScriptProperty -Name Inactive -Value { [int]$this.Total - [int]$this.Active }
@@ -917,7 +916,7 @@ if ($reportSPO) {
     $spoStorage | Add-Member -MemberType ScriptProperty -Name UsedTB -Value { "{0:N2}" -f ($this."Storage Used (Byte)" / 1tb) }
     $spoStorage = $spoStorage | Sort-Object ReportDate | Select-Object -Last 1
 
-    $html += '<hr><table id="section"><tr><th class="data">SharePoint Site Count and Storage</th></tr></table><hr>'
+    $html += '<hr><table id="section"><tr><th class="data">SharePoint Site and Storage Usage</th></tr></table><hr>'
     $html += '<table id="data">'
     $html += '<tr><th width="15%">Storage Used (TB)</th><td>' + ("{0:N2}" -f [decimal]$spoStorage.UsedTB) + '</td></tr>'
     $html += '<tr><th width="15%">Total Sites</th><td>' + ("{0:N0}" -f [int]$spoSites.Total) + '</td></tr>'
@@ -926,8 +925,6 @@ if ($reportSPO) {
     $html += '</table>'
 
     if ($saveRawData) {
-        # $spoSites | Export-Csv "$($reportFolder)\summary_sharepointOnlineSites.csv" -NoTypeInformation
-        # $spoStorage | Export-Csv "$($reportFolder)\summary_sharepointOnlineStorage.csv" -NoTypeInformation
         $raw | Export-Csv "$($reportFolder)\raw_sharePointSiteUsageDetail.csv" -NoTypeInformation
     }
 }
@@ -937,7 +934,8 @@ if ($reportSPO) {
 #==============================================
 if ($reportOneDrive) {
     Write-Output "$(Get-Date) : Processing OneDrive Report"
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOneDriveUsageAccountDetail(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting OneDrive Usage"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOneDriveUsageAccountDetail(period='D$($dPeriod)')"
     $getOneDriveUsageAccountDetail = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $getOneDriveUsageAccountDetail | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this."Last Activity Date" }
     $oneDriveSites = "" | Select-Object Total, Active, Inactive
@@ -945,7 +943,8 @@ if ($reportOneDrive) {
     $oneDriveSites.Inactive = ($getOneDriveUsageAccountDetail | Where-Object { $_.LastActivityDate -lt ($today.AddDays(-$dPeriod)) }).Count
     $oneDriveSites.Active = ($getOneDriveUsageAccountDetail | Where-Object { $_.LastActivityDate -ge ($today.AddDays(-$dPeriod)) }).Count
 
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOneDriveUsageStorage(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting OneDrive Storage Usage"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOneDriveUsageStorage(period='D$($dPeriod)')"
     $oneDriveStorage = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $oneDriveStorage | Add-Member -MemberType ScriptProperty -Name ReportDate -Value { [datetime]$this."Report Date" }
     $oneDriveStorage | Add-Member -MemberType ScriptProperty -Name Inactive -Value { [int]$this.Total - [int]$this.Active }
@@ -974,7 +973,8 @@ if ($reportSkypeForBusiness) {
     Write-Output "$(Get-Date) : Processing Skype For Business Report"
     # Total minutes (audio/video)
     # Organized minutes
-    $uri1 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessOrganizerActivityMinuteCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB organized minutes"
+    $uri1 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessOrganizerActivityMinuteCounts(period='D$($dPeriod)')"
     $sfb1 = (Invoke-RestMethod -Method Get -Uri $uri1 -Headers $headerParams) | ConvertFrom-Csv
 
     if ($saveRawData) {
@@ -982,7 +982,8 @@ if ($reportSkypeForBusiness) {
     }
 
     # Participant minutes
-    $uri2 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessParticipantActivityMinuteCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB participant minutes"
+    $uri2 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessParticipantActivityMinuteCounts(period='D$($dPeriod)')"
     $sfb2 = (Invoke-RestMethod -Method Get -Uri $uri2 -Headers $headerParams) | ConvertFrom-Csv
 
     if ($saveRawData) {
@@ -990,7 +991,8 @@ if ($reportSkypeForBusiness) {
     }
 
     # Peer to peer minutes
-    $uri3 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessPeerToPeerActivityMinuteCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB p2p minutes"
+    $uri3 = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessPeerToPeerActivityMinuteCounts(period='D$($dPeriod)')"
     $sfb3 = (Invoke-RestMethod -Method Get -Uri $uri3 -Headers $headerParams) | ConvertFrom-Csv
 
     if ($saveRawData) {
@@ -1006,7 +1008,8 @@ if ($reportSkypeForBusiness) {
 
     # Active user, conference and p2p sessions
     # Active User Count
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessActivityUserDetail(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB active user count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessActivityUserDetail(period='D$($dPeriod)')"
     $activeUserCount = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $activeUserCount | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this."Last Activity Date" }
     if ($saveRawData) {
@@ -1015,7 +1018,8 @@ if ($reportSkypeForBusiness) {
     $activeUserCount = ($activeUserCount | Where-Object { $_.LastActivityDate -ge $startDate -and $_.LastActivityDate -le $endDate }).Count
 
     # Conference count
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessOrganizerActivityCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB conference count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessOrganizerActivityCounts(period='D$($dPeriod)')"
     $conferenceCount = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
     if ($saveRawData) {
@@ -1026,7 +1030,8 @@ if ($reportSkypeForBusiness) {
     $conferenceCount = ($conferenceCount | Measure-Object Sum -sum).Sum
 
     # Peer to peer count
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessPeerToPeerActivityCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB p2p activity count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessPeerToPeerActivityCounts(period='D$($dPeriod)')"
     $peerTOpeerCount = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $peerTOpeerCount | Add-Member -MemberType ScriptProperty -Name ReportDate -Value { [datetime]$this."Report Date" }
     $peerTOpeerCount = $peerTOpeerCount | Where-Object { $_.ReportDate -ge $startDate -and $_.ReportDate -le $endDate }
@@ -1050,7 +1055,8 @@ if ($reportSkypeForBusiness) {
     $html += '</table>'
 
     # Device usage distribution
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessDeviceUsageDistributionUserCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting SfB device usage distribution count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getSkypeForBusinessDeviceUsageDistributionUserCounts(period='D$($dPeriod)')"
     $sfbDevices = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     if ($saveRawData) {
         $sfbDevices | Export-Csv "$($reportFolder)\raw_SkypeForBusinessDeviceUsageDistributionUserCounts.csv" -NoTypeInformation
@@ -1070,23 +1076,24 @@ if ($reportSkypeForBusiness) {
 #==============================================
 if ($reportTeams) {
     Write-Output "$(Get-Date) : Processing MS Teams Report"
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsUserActivityUserDetail(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Teams active user count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsUserActivityUserDetail(period='D$($dPeriod)')"
     $TeamsUserActivityUserDetail = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $TeamsUserActivityUserDetail | Add-Member -MemberType ScriptProperty -Name LastActivityDate -Value { [datetime]$this.'Last Activity Date' }
-
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsUserActivityCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Teams user activity count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsUserActivityCounts(period='D$($dPeriod)')"
     $TeamsUserActivityCounts = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
-
-    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsDeviceUsageDistributionUserCounts(period='D" + $($dPeriod) + "')"
+    Write-Output "$(Get-Date) :      --> Getting Teams device usage distribution count"
+    $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getTeamsDeviceUsageDistributionUserCounts(period='D$($dPeriod)')"
     $TeamsDeviceUsageDistributionUserCounts = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
     # Teams Users
     $html += '<hr><table id="section"><tr><th class="data">Teams Users</th></tr></table><hr>'
     $html += '<table id="data">'
-    $html += '<tr><th width="15%">Total Teams Users (Licensed)</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' }).count) + '</td></tr>'
-    $html += '<tr><th width="15%">Active Teams Users (Licensed)</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' -and $_.LastActivityDate -ge $startDate }).count) + '</td></tr>'
-    $html += '<tr><th width="15%">Inctive Teams Users (Licensed)</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' -and $_.LastActivityDate -lt $startDate }).count) + '</td></tr>'
-    $html += '<tr><th width="15%">Total Guest Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'User Principal Name' -match '#EXT#' }).count) + '</td></tr>'
+    $html += '<tr><th width="15%">Teams Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' }).count) + '</td></tr>'
+    $html += '<tr><th width="15%">Active Teams Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' -and $_.LastActivityDate -ge $startDate }).count) + '</td></tr>'
+    $html += '<tr><th width="15%">Inctive Teams Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' -and $_.LastActivityDate -lt $startDate }).count) + '</td></tr>'
+    $html += '<tr><th width="15%">Guest Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'User Principal Name' -match '#EXT#' }).count) + '</td></tr>'
     $html += '</table>'
 
     # Teams User Activity
@@ -1226,6 +1233,7 @@ if ($sendEmail) {
         Write-Output "$(Get-Date) : [$([Char]8730)] Sending Complete"
     }
     catch {
+        $null = $ServicePoint.CloseConnectionGroup("")
         Write-Output "$(Get-Date) : [X] Sending failed"
         Write-Output "$(Get-Date) : $($_.Exception)"
         LogEnd
