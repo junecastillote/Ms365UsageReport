@@ -47,8 +47,8 @@ The reports that can be exported using this script are:
   - Teams
   - Yammer
 - Microsoft 365
-  - Active User Counts **<span style="color:red">NEW!</span>**
-  - Activations User Counts **<span style="color:red">NEW!</span>**
+  - Users **(NEW)**
+  - Activations **(NEW)**
 - Exchange Reports
   - Mailbox Status (Active/Inactive)
   - Mailbox Provisioning (Created/Deleted)
