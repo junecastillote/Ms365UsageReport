@@ -162,7 +162,7 @@ To create a new configuration, make a copy of the *config_template.json*. I reco
 
 ![Create a copy of the configuration file](images/copy_config.png)<br>Create a copy of the configuration file
 
-> You can use any name for the new configuration file. The content is what's important, not the file name.
+> You can use any name for the new configuration file. What's important is the contents, not the file name.
 
 ### JSON Settings Explained
 
