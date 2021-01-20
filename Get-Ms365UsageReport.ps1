@@ -596,7 +596,7 @@ if ($reportMailboxUsageAndProvisioning) {
     # Get deleted mailbox
     Write-Output "$(Get-Date) :      --> Getting list of deleted mailboxes"
     # v1.2.1 - changed back to Get-Mailbox
-    $deletedMailbox = Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" -Properties UserPrincipalName, WhenSoftDeleted |
+    $deletedMailbox = Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" |
     Select-Object UserPrincipalName, WhenSoftDeleted |
     Sort-Object UserPrincipalName
 
