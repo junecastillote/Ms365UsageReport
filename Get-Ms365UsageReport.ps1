@@ -6,7 +6,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2.1
+.VERSION 1.2.2
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -48,7 +48,7 @@ Add Config item:
     * [√] exchangeCredentialFile
 
 Changed:
-    * [√] Get-Mailbox to Get-ExoMailbox
+    * [√] Revert Get-ExoMailbox to Get-Mailbox due to REST-related issues.
 
 .PRIVATEDATA
 
@@ -371,7 +371,7 @@ $mailSubject = "[$($organizationName)] Microsoft 365 Usage Report for the period
 $html = "<html>"
 $html += "<head><title>$($mailSubject)</title>"
 $html += "<meta http-equiv=""Content-Type"" content=""text/html; charset=ISO-8859-1"" />"
-$html += '<style type="text/css">'+"`n"
+$html += '<style type="text/css">' + "`n"
 $html += @'
 #heading
 	{
@@ -555,29 +555,17 @@ if ($reportMailboxUsageAndProvisioning) {
     $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
     $mailboxUsageAndProvisioningData = @()
     foreach ($detail in $result) {
-        $raw = "" | Select-Object UserPrincipalName, DisplayName, IsDeleted, DeletedDate, CreatedDate, LastActivityDate, ItemCount, StorageUsedByte, IssueWarningQuotaByte, ProhibitSendQuotaByte, ProhibitSendReceiveQuotaByte, IsBelow25Percent, IsOverQuota, IsInActive
+        $raw = "" | Select-Object UserPrincipalName, DisplayName, IsDeleted, DeletedDate, CreatedDate, LastActivityDate, StorageUsedByte, IssueWarningQuotaByte, ProhibitSendQuotaByte, ProhibitSendReceiveQuotaByte, IsBelow25Percent, IsOverQuota, IsInActive
         $raw.UserPrincipalName = $detail."User Principal Name"
         $raw.DisplayName = $detail."Display Name"
         $raw.IsDeleted = $detail."Is Deleted"
         if ($detail."Deleted Date") { $raw.DeletedDate = [datetime]$detail."Deleted Date" }
         if ($detail."Created Date") { $raw.CreatedDate = [datetime]$detail."Created Date" }
         if ($detail."Last Activity Date") { $raw.LastActivityDate = [datetime]$detail."Last Activity Date" }
-        $raw.ItemCount = [double]$detail."Item Count"
         $raw.StorageUsedByte = [double]$detail."Storage Used (Byte)"
-
-        # sometimes the 'Issue Warning Quota (Byte)' property is empty. If so, we need to get it from the mailbox using Get-ExoMailbox
-        if (!($detail.'Issue Warning Quota (Byte)')) {
-            # v1.2 - changed to Get-ExoMailbox
-            $mailbox = Get-ExoMailbox ($detail."User Principal Name") -Properties IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota | Select-Object UserPrincipalName, IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota
-            $raw.IssueWarningQuotaByte = [math]::Round(($mailbox.IssueWarningQuota.ToString().Split("(")[1].Split(" ")[0].Replace(",", "")), 2)
-            $raw.ProhibitSendQuotaByte = [math]::Round(($mailbox.ProhibitSendQuota.ToString().Split("(")[1].Split(" ")[0].Replace(",", "")), 2)
-            $raw.ProhibitSendReceiveQuotaByte = [math]::Round(($mailbox.ProhibitSendReceiveQuota.ToString().Split("(")[1].Split(" ")[0].Replace(",", "")), 2)
-        }
-        else {
-            $raw.IssueWarningQuotaByte = [double]$detail."Issue Warning Quota (Byte)"
-            $raw.ProhibitSendQuotaByte = [double]$detail."Prohibit Send Quota (Byte)"
-            $raw.ProhibitSendReceiveQuotaByte = [double]$detail."Prohibit Send/Receive Quota (Byte)"
-        }
+        $raw.IssueWarningQuotaByte = [double]$detail."Issue Warning Quota (Byte)"
+        $raw.ProhibitSendQuotaByte = [double]$detail."Prohibit Send Quota (Byte)"
+        $raw.ProhibitSendReceiveQuotaByte = [double]$detail."Prohibit Send/Receive Quota (Byte)"
 
         if (!($raw.LastActivityDate)) {
             $raw.IsInActive = $true
@@ -607,8 +595,8 @@ if ($reportMailboxUsageAndProvisioning) {
 
     # Get deleted mailbox
     Write-Output "$(Get-Date) :      --> Getting list of deleted mailboxes"
-    # v1.2 - changed to Get-ExoMailbox
-    $deletedMailbox = Get-ExoMailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" -Properties UserPrincipalName, WhenSoftDeleted |
+    # v1.2.1 - changed back to Get-Mailbox
+    $deletedMailbox = Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" |
     Select-Object UserPrincipalName, WhenSoftDeleted |
     Sort-Object UserPrincipalName
 
