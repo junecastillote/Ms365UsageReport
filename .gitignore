@@ -4,3 +4,4 @@
 *.log
 config.json
 *.css
+.vscode/settings.json
