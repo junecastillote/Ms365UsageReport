@@ -6,7 +6,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2.2
+.VERSION 1.2.3
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -774,7 +774,7 @@ if ($reportATPDetections) {
     $page = 0
     Do {
         $page++
-        $temp = Get-ATPTotalTrafficReport -StartDate $startDate -EndDate $endDate -PageSize $pageSize -Page $page | Select-Object EventType, MessageCount
+        $temp = Get-ATPTotalTrafficReport -StartDate $startDate -EndDate ($endDate).AddDays(-1) -PageSize $pageSize -Page $page | Select-Object EventType, MessageCount
         $atpTrafficReport = $atpTrafficReport + $temp
     } While ($temp.count -eq $pageSize)
     #$atpTrafficReport | Format-Table
