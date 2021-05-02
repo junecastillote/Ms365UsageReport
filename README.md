@@ -6,30 +6,30 @@
 
 [![GitHub license](https://img.shields.io/github/license/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/blob/main/LICENSE)
 
-- [Overview](#overview)
-- [What's New in Version 1.2](#whats-new-in-version-12)
-  - [Breaking Change from older versions](#breaking-change-from-older-versions)
-- [Requirements](#requirements)
-- [How to Get the Script](#how-to-get-the-script)
-  - [Files List](#files-list)
-- [Configuration](#configuration)
-  - [Make a New Configuration File](#make-a-new-configuration-file)
-  - [JSON Settings Explained](#json-settings-explained)
-- [How to Use the Script](#how-to-use-the-script)
-  - [Syntax](#syntax)
-  - [Running the Script](#running-the-script)
-  - [Script Output](#script-output)
-    - [Transcript File](#transcript-file)
-    - [Raw Data and HTML Report Files](#raw-data-and-html-report-files)
-    - [HTML Report](#html-report)
-    - [Email Report](#email-report)
-- [ANNEX](#annex)
-  - [Register a New Azure AD App](#register-a-new-azure-ad-app)
-    - [Adding the Required API Permissions](#adding-the-required-api-permissions)
-    - [OPTION 1: Adding a Client Secret](#option-1-adding-a-client-secret)
-    - [OPTION 2: Creating and Uploading a Self-Signed Certificate](#option-2-creating-and-uploading-a-self-signed-certificate)
-    - [Granting Admin Consent](#granting-admin-consent)
-  - [Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)
+- [Ms365UsageReport PowerShell Script (1.v2)](#ms365usagereport-powershell-script-1v2)
+  - [Overview](#overview)
+  - [What's New in Version v1.2.3](#whats-new-in-version-v123)
+  - [Requirements](#requirements)
+  - [How to Get the Script](#how-to-get-the-script)
+    - [Files List](#files-list)
+  - [Configuration](#configuration)
+    - [Make a New Configuration File](#make-a-new-configuration-file)
+    - [JSON Settings Explained](#json-settings-explained)
+  - [How to Use the Script](#how-to-use-the-script)
+    - [Syntax](#syntax)
+    - [Running the Script](#running-the-script)
+    - [Script Output](#script-output)
+      - [Transcript File](#transcript-file)
+      - [Raw Data and HTML Report Files](#raw-data-and-html-report-files)
+      - [HTML Report](#html-report)
+      - [Email Report](#email-report)
+  - [ANNEX](#annex)
+    - [Register a New Azure AD App](#register-a-new-azure-ad-app)
+      - [Adding the Required API Permissions](#adding-the-required-api-permissions)
+      - [OPTION 1: Adding a Client Secret](#option-1-adding-a-client-secret)
+      - [OPTION 2: Creating and Uploading a Self-Signed Certificate](#option-2-creating-and-uploading-a-self-signed-certificate)
+      - [Granting Admin Consent](#granting-admin-consent)
+    - [Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)
 
 ## Overview
 
@@ -45,8 +45,8 @@ The reports that can be exported using this script are:
   - Teams
   - Yammer
 - Microsoft 365
-  - Users - **(NEW)**
-  - Activations - **(NEW)**
+  - Users
+  - Activations
 - Exchange Reports
   - Mailbox Status (Active/Inactive)
   - Mailbox Provisioning (Created/Deleted)
@@ -86,32 +86,14 @@ The reports that can be exported using this script are:
   - Total Private Chat Messages
   - Device Usage Distribution
 
-## What's New in Version 1.2
+## What's New in Version v1.2.3
 
-- Added two new reports.
-  - Ms365 Active User Counts.
-  - Ms365 Activation User Counts.
-
-- Updated the JSON configuration template to include the options to enable or disable the two new reports.
-
-  ![New reports added to version 1.2](images/image020.png)<br>New reports added to version 1.2
-
-  Related: [JSON Settings Explained](#json-settings-explained)
-
-- Updated the JSON configuration template to include Graph API and Exchange Online authentication options.
-
-  ![image-20210118212753782](images/image021.png)<br>Authentication details integrated to the JSON config template.
-
-  Related: [JSON Settings Explained](#json-settings-explained)
-
-### Breaking Change from older versions
-
-You no longer need to perform these two steps manually.
-
-1. Generate an access token.
-2. Connect to Exchange Online PowerShell.
-
-In version 1.2, these two steps above are already included in the script. But you will need to manually update your JSON configuration file to use the new template if you are coming from an older version. You're be fine if you're starting from scratch.
+  - Fixed inbound count. All inbound messages are now counted.
+  - Fixed outbound count. All outbound messages are now counted.
+  - Fixed spam count count. All inbound and outbound spam are now counted.
+  - Fixed malware count count. All inbound and outbound spam are now counted.
+  - Replaced Get-MailTrafficATPReport with Get-ATPTotalTrafficReport.
+  - Replace Get-MailTrafficTopReport wit MailTrafficSummaryReport
 
 ## Requirements
 
