@@ -6,7 +6,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2.2
+.VERSION 1.2.3
 
 .GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
 
@@ -60,7 +60,7 @@ Changed:
 .DESCRIPTION
     Microsoft 365 Usage Reporting Script using Microsoft Graph API and Exchange Online PowerShell V2
 .EXAMPLE
-    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.json -GraphApiAccessToken <accesstoken>
+    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.json
 
 .INPUTS
     Inputs (if any)
@@ -98,7 +98,7 @@ Function LogStart {
 }
 #EndRegion Functions
 
-While (Get-PsSession -Name ExchangeOnline*) {
+While (Get-PSSession -Name ExchangeOnline*) {
     Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue
 }
 
@@ -114,7 +114,7 @@ $scriptInfo = Test-ScriptFileInfo -Path $MyInvocation.MyCommand.Definition
 
 # Create transcript folder
 $logFolder = "$($script_root)\transcript"
-$logFile = "$($logFolder)\log_$(Get-Date -format dd-MMM-yyyy_H_mm_ss).txt"
+$logFile = "$($logFolder)\log_$(Get-Date -Format dd-MMM-yyyy_H_mm_ss).txt"
 if (!(Test-Path $logFolder)) {
     Write-Output "$(Get-Date) : Creating Transcript folder $($logFolder)"
     New-Item -ItemType Directory -Path $logFolder -Force | Out-Null
@@ -265,7 +265,7 @@ if ($options.auth.msGraphAuthType -eq 2) {
     else {
         try {
             Write-Output "$(Get-Date) : Trying to acquire an access token using app key."
-            $msGraphAppKeySecured = new-object securestring
+            $msGraphAppKeySecured = New-Object securestring
             $msGraphAppKey.ToCharArray() | ForEach-Object { $msGraphAppKeySecured.AppendChar($_) }
             $oAuth = Get-MsalToken -ClientId $msGraphAppID -TenantId $tenantName -ClientSecret $msGraphAppKeySecured -ErrorAction STOP
             $headerParams = @{'Authorization' = "Bearer $($oAuth.AccessToken)" }
@@ -315,7 +315,7 @@ if ($enabledReport -contains 'Exchange') {
             }
             else {
                 try {
-                    $exchangeCredential = Import-CliXml $exchangeCredentialFile -ErrorAction STOP
+                    $exchangeCredential = Import-Clixml $exchangeCredentialFile -ErrorAction STOP
                     Write-Output "$(Get-Date) : Trying to connect Exchange Online PowerShell using credential."
                     Connect-ExchangeOnline -Organization $tenantName -Credential $exchangeCredential -ShowBanner:$false -ErrorAction STOP
                     Write-Output "$(Get-Date) : [$([Char]8730)] Connected to Exchange Online PowerShell."
@@ -620,7 +620,7 @@ if ($reportMailboxUsageAndProvisioning) {
 
     if ($saveRawData) {
         $result | Export-Csv "$($reportFolder)\raw_getMailboxUsageDetail.csv" -NoTypeInformation
-        $mailboxUsageAndProvisioningData | Export-csv "$($reportFolder)\raw_MailboxUsageDetail.csv" -NoTypeInformation
+        $mailboxUsageAndProvisioningData | Export-Csv "$($reportFolder)\raw_MailboxUsageDetail.csv" -NoTypeInformation
         $deletedMailbox | Export-Csv "$($reportFolder)\raw_exchangeDeletedMailbox.csv" -NoTypeInformation
     }
 
@@ -733,13 +733,20 @@ if ($reportOffice365GroupsProvisioning) {
 if ($reportMailTraffic) {
     Write-Output "$(Get-Date) : Processing Mail Traffic Report"
     Write-Output "$(Get-Date) :      --> Getting mail traffic data"
+    <#
+        v1.2.3
+        * Fixed inbound count. All inbound messages are now counted.
+        * Fixed outbound count. All outbound messages are now counted.
+        * Fixed spam count count. All inbound and outbound spam are now counted.
+        * Fixed malware count count. All inbound and outbound spam are now counted.
+    #>
     $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
-    $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -AND ($_.EventType -eq 'goodmail' -or $_.EventType -like "spam*" -or $_.EventType -eq 'malware' -or $_.EventType -eq 'TransportRuleHits') } | Measure-Object MessageCount -sum).Sum
-    $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -AND ($_.EventType -eq 'goodmail' -or $_.EventType -like "spam*" -or $_.EventType -eq 'malware' -or $_.EventType -eq 'TransportRuleHits') } | Measure-Object MessageCount -sum).Sum
-    $mailTraffic.Spam = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -AND $_.EventType -like "spam*" } | Measure-Object MessageCount -sum).Sum
-    $mailTraffic.Malware = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -AND $_.EventType -eq 'malware' } | Measure-Object MessageCount -sum).Sum
+    $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Spam = ($mailTrafficData | Where-Object { $_.EventType -like "spam*" } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Malware = ($mailTrafficData | Where-Object { $_.EventType -like "*malware" } | Measure-Object MessageCount -Sum).Sum
 
     $html += '<hr><table id="section"><tr><th>Mail Traffic</th></tr></table><hr>'
     $html += '<table id="data">'
@@ -760,80 +767,61 @@ if ($reportMailTraffic) {
 
 # ATP Mail detections
 if ($reportATPDetections) {
+    <#
+        v1.2.3 - Replaced Get-MailTrafficATPReport with Get-ATPTotalTrafficReport.
+    #>
     Write-Output "$(Get-Date) : Processing ATP Mail Detection Report"
-
-    $atpSafeLinks_splat = @{
-        StartDate   = $startDate
-        EndDate     = (Get-Date $endDate).AddDays(-1)
-        AppNameList = @('Email Client', 'Outlook')
-    }
+    $atpTrafficReport = Get-ATPTotalTrafficReport -StartDate $startDate -EndDate ($endDate).AddDays(-1) -AggregateBy Summary | Select-Object EventType, MessageCount
     Write-Output "$(Get-Date) :      --> Getting ATP SafeLinks blocked message count"
-    $atpSafeLinks = Get-SafeLinksAggregateReport @atpSafeLinks_splat | Where-Object { $_.Action -eq 'Blocked' }
+    $atpSafeLinks = $atpTrafficReport | Where-Object { $_.EventType -eq 'TotalSafeLinkCount' }
     Write-Output "$(Get-Date) :      --> Getting ATP SafeAttachments blocked message count"
-    $atpSafeAttachments = Get-MailTrafficATPReport -StartDate $startDate -EndDate $endDate -EventType 'ATP safe attachments'
-    $atpMailTraffic = "" | Select-Object atpSafeLinks, atpSafeAttachments
-    $atpMailTraffic.atpSafeLinks = $atpSafeLinks.MessageCount
-    $atpMailTraffic.atpSafeAttachments = ($atpSafeAttachments | measure-object messagecount -sum).sum
-
+    $atpSafeAttachments = $atpTrafficReport | Where-Object { $_.EventType -eq 'TotalSafeAttachmentCount' }
+    
     $html += '<hr><table id="section"><tr><th>ATP Mail Detection</th></tr></table><hr>'
     $html += '<table id="data">'
-    $html += '<tr><th>Blocked by ATP Safe Links</th><td>' + ("{0:N0}" -f $atpMailTraffic.atpSafeLinks) + '</td></tr>'
-    $html += '<tr><th>Blocked by ATP Safe Attachments</th><td>' + ("{0:N0}" -f $atpMailTraffic.atpSafeAttachments) + '</td></tr>'
+    $html += '<tr><th>Blocked by ATP Safe Links</th><td>' + ("{0:N0}" -f [int]$atpSafeLinks.MessageCount) + '</td></tr>'
+    $html += '<tr><th>Blocked by ATP Safe Attachments</th><td>' + ("{0:N0}" -f [int]$atpSafeAttachments.MessageCount) + '</td></tr>'
     $html += '</table>'
 
     if ($saveRawData) {
-        $atpSafeLinks | Export-Csv "$($reportFolder)\raw_exchangeAtpSafeLinks.csv" -NoTypeInformation
-        $atpSafeAttachments | Export-Csv "$($reportFolder)\raw_exchangeAtpSafeAttachments.csv" -NoTypeInformation
+        $atpTrafficReport | Export-Csv "$($reportFolder)\raw_exchangeAtpTrafficReport.csv" -NoTypeInformation
     }
 }
 
 # Top 10 mail traffic reports
+<#
+    v1.2.3
+    * Replace Get-MailTrafficTopReport wit MailTrafficSummaryReport
+#>
 if ($reportTopMailTraffic) {
     Write-Output "$(Get-Date) : Processing Top Mail Traffic Report"
 
-    # Top mail report - ALL
-    Write-Output "$(Get-Date) :      --> Getting Top Mail Traffic Raw Data"
-    $topMailReport = @()
-    $pageSize = 5000
-    $page = 0
-    Do {
-        $page++
-        $temp = Get-MailTrafficTopReport -StartDate $startDate -EndDate $endDate -pagesize $pageSize -page $page -AggregateBy Summary
-        $topMailReport = $topMailReport + $temp
-    } While ($temp.count -eq $pageSize)
-    $topMailReport | Add-Member -MemberType ScriptProperty -Name TotalMessage -Value { [int]$this.MessageCount }
-
     # Top 10 Spam Recipients
     Write-Output "$(Get-Date) :      --> Getting Top 10 Spam Recipients"
-    $top10SpamRecipient = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopSpamUser' }
-    $top10SpamRecipient = $top10SpamRecipient | Sort-Object MessageCount -Descending | Select-Object -First 10
+    $top10SpamRecipient = Get-MailTrafficSummaryReport -StartDate $startDate -EndDate $endDate -Category TopSpamRecipient | Select-Object -First 10 -Property C1, C2
 
     # Top 10 Malware Recipients
     Write-Output "$(Get-Date) :      --> Getting Top 10 Malware Recipients"
-    $top10MalwareRecipient = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopMalwareUser' }
-    $top10MalwareRecipient = $top10MalwareRecipient | Sort-Object MessageCount -Descending | Select-Object -First 10
+    $top10MalwareRecipient = Get-MailTrafficSummaryReport -StartDate $startDate -EndDate $endDate -Category TopMalwareRecipient | Select-Object -First 10 -Property C1, C2
 
     # Top 10 Mail Senders
     Write-Output "$(Get-Date) :      --> Getting Top 10 Mail Senders"
-    $top10MailSender = $topMailReport | Where-Object { $_.Direction -eq 'Outbound' -And $_.EventType -eq 'TopMailUser' }
-    $top10MailSender = $top10MailSender | Sort-Object MessageCount -Descending | Select-Object -First 10
+    $top10MailSender = Get-MailTrafficSummaryReport -StartDate $startDate -EndDate $endDate -Category TopMailSender | Select-Object -First 10 -Property C1, C2
 
     # Top 10 Mail Recipients
     Write-Output "$(Get-Date) :      --> Getting Top 10 Mail Recipients"
-    $top10MailRecipient = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopMailUser' }
-    $top10MailRecipient = $top10MailRecipient | Sort-Object MessageCount -Descending | Select-Object -First 10
+    $top10MailRecipient = Get-MailTrafficSummaryReport -StartDate $startDate -EndDate $endDate -Category TopMailRecipient | Select-Object -First 10 -Property C1, C2
 
     # Top 10 Malware
     Write-Output "$(Get-Date) :      --> Getting Top 10 Malware"
-    $top10Malware = $topMailReport | Where-Object { $_.Direction -eq 'Inbound' -And $_.EventType -eq 'TopMalware' }
-    $top10Malware = $top10Malware | Sort-Object MessageCount -Descending | Select-Object -First 10
+    $top10Malware = Get-MailTrafficSummaryReport -StartDate $startDate -EndDate $endDate -Category TopMalware | Select-Object -First 10 -Property C1, C2
 
     # Top 10 mail sender
     $html += '<hr><table id="section"><tr><th>Top 10 Mail Senders</th></tr></table><hr>'
     $html += '<table id="data">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($mailSender in $top10MailSender) {
-        $html += '<tr><td>' + $mailSender.Name + '</td><td>' + ("{0:N0}" -f $mailSender.MessageCount) + '</td></tr>'
+        $html += '<tr><td>' + $mailSender.C1 + '</td><td>' + ("{0:N0}" -f [int]$mailSender.C2) + '</td></tr>'
     }
     $html += '</table>'
 
@@ -842,7 +830,7 @@ if ($reportTopMailTraffic) {
     $html += '<table id="data">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($mailRecipient in $top10MailRecipient) {
-        $html += '<tr><td>' + $mailRecipient.Name + '</td><td>' + ("{0:N0}" -f $mailRecipient.MessageCount) + '</td></tr>'
+        $html += '<tr><td>' + $mailRecipient.C1 + '</td><td>' + ("{0:N0}" -f [int]$mailRecipient.C2) + '</td></tr>'
     }
     $html += '</table>'
 
@@ -851,7 +839,7 @@ if ($reportTopMailTraffic) {
     $html += '<table id="data">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($spamRecipient in $top10SpamRecipient) {
-        $html += '<tr><td>' + $spamRecipient.Name + '</td><td>' + ("{0:N0}" -f $spamRecipient.MessageCount) + '</td></tr>'
+        $html += '<tr><td>' + $spamRecipient.C1 + '</td><td>' + ("{0:N0}" -f [int]$spamRecipient.C2) + '</td></tr>'
     }
     $html += '</table>'
 
@@ -860,7 +848,7 @@ if ($reportTopMailTraffic) {
     $html += '<table id="data">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($malwareRecipient in $top10MalwareRecipient) {
-        $html += '<tr><td>' + $malwareRecipient.Name + '</td><td>' + ("{0:N0}" -f $malwareRecipient.MessageCount) + '</td></tr>'
+        $html += '<tr><td>' + $malwareRecipient.C1 + '</td><td>' + ("{0:N0}" -f [int]$malwareRecipient.C2) + '</td></tr>'
     }
     $html += '</table>'
 
@@ -869,12 +857,16 @@ if ($reportTopMailTraffic) {
     $html += '<table id="data">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($malware in $top10Malware) {
-        $html += '<tr><td>' + $malware.Name + '</td><td>' + ("{0:N0}" -f $malware.MessageCount) + '</td></tr>'
+        $html += '<tr><td>' + $malware.C1 + '</td><td>' + ("{0:N0}" -f [int]$malware.C2) + '</td></tr>'
     }
     $html += '</table>'
 
     if ($saveRawData) {
-        $topMailReport | Export-Csv "$($reportFolder)\raw_exchangeTopMailTraffic.csv" -NoTypeInformation
+        $top10SpamRecipient | Export-Csv "$($reportFolder)\raw_top10SpamRecipient.csv" -NoTypeInformation
+        $top10MalwareRecipient | Export-Csv "$($reportFolder)\raw_top10MalwareRecipient.csv" -NoTypeInformation
+        $top10MailSender | Export-Csv "$($reportFolder)\raw_top10MailSender.csv" -NoTypeInformation
+        $top10MailRecipient | Export-Csv "$($reportFolder)\raw_top10MailRecipient.csv" -NoTypeInformation
+        $top10Malware | Export-Csv "$($reportFolder)\raw_top10Malware.csv" -NoTypeInformation
     }
 }
 #==============================================
@@ -986,9 +978,9 @@ if ($reportSkypeForBusiness) {
 
     # Assemble object
     $SfbMinutes = "" | Select-Object Organized, Participated, PeerToPeer, Total
-    $SfbMinutes.Organized = ($sfb1 | Measure-Object "Audio/Video" -sum).sum
-    $SfbMinutes.Participated = ($sfb2 | Measure-Object "Audio/Video" -sum).sum
-    $SfbMinutes.PeerToPeer = (($sfb3 | Measure-Object "Audio" -sum).sum + ($sfb3 | Measure-Object "Video" -sum).sum)
+    $SfbMinutes.Organized = ($sfb1 | Measure-Object "Audio/Video" -Sum).sum
+    $SfbMinutes.Participated = ($sfb2 | Measure-Object "Audio/Video" -Sum).sum
+    $SfbMinutes.PeerToPeer = (($sfb3 | Measure-Object "Audio" -Sum).sum + ($sfb3 | Measure-Object "Video" -Sum).sum)
     $SfbMinutes.Total = $SfbMinutes.Organized + $SfbMinutes.Participated + $SfbMinutes.PeerToPeer
 
     # Active user, conference and p2p sessions
@@ -1011,8 +1003,8 @@ if ($reportSkypeForBusiness) {
         $conferenceCount | Export-Csv "$($reportFolder)\raw_SkypeForBusinessOrganizerActivityCounts.csv" -NoTypeInformation
     }
 
-    $conferenceCount = $conferenceCount | Measure-Object -Property IM, "Audio/Video", "App Sharing", Web, "Dial-in/out 3rd Party", "Dial-in/out Microsoft" -sum
-    $conferenceCount = ($conferenceCount | Measure-Object Sum -sum).Sum
+    $conferenceCount = $conferenceCount | Measure-Object -Property IM, "Audio/Video", "App Sharing", Web, "Dial-in/out 3rd Party", "Dial-in/out Microsoft" -Sum
+    $conferenceCount = ($conferenceCount | Measure-Object Sum -Sum).Sum
 
     # Peer to peer count
     Write-Output "$(Get-Date) :      --> Getting SfB p2p activity count"
@@ -1023,8 +1015,8 @@ if ($reportSkypeForBusiness) {
     if ($saveRawData) {
         $peerTOpeerCount | Export-Csv "$($reportFolder)\raw_SkypeForBusinessPeerToPeerActivityCounts.csv" -NoTypeInformation
     }
-    $peerTOpeerCount = $peerTOpeerCount | Measure-Object -Property IM, Audio, Video, "App Sharing", "File Transfer" -sum
-    $peerTOpeerCount = ($peerTOpeerCount | Measure-Object Sum -sum).Sum
+    $peerTOpeerCount = $peerTOpeerCount | Measure-Object -Property IM, Audio, Video, "App Sharing", "File Transfer" -Sum
+    $peerTOpeerCount = ($peerTOpeerCount | Measure-Object Sum -Sum).Sum
 
     $sfbCount = "" | Select-Object ActiveUser, Conference, PeerToPeer
     $sfbCount.ActiveUser = $activeUserCount
@@ -1210,7 +1202,7 @@ if ($sendEmail) {
                 )
             }
         }
-        $mailBody = $mailBody | ConvertTo-JSON -Depth 4
+        $mailBody = $mailBody | ConvertTo-Json -Depth 4
         $ServicePoint = [System.Net.ServicePointManager]::FindServicePoint('https://graph.microsoft.com')
         $mailApiUri = "https://graph.microsoft.com/$graphApiVersion/users/$($fromAddress)/sendmail"
         Invoke-RestMethod -Method Post -Uri $mailApiUri -Body $mailbody -Headers $headerParams -ContentType application/json -ErrorAction STOP
