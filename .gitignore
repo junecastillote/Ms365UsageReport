@@ -6,3 +6,4 @@ config.json
 *.css
 .vscode/settings.json
 xpot.json
+xpot.ps1

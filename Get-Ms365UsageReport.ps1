@@ -733,21 +733,20 @@ if ($reportOffice365GroupsProvisioning) {
 if ($reportMailTraffic) {
     Write-Output "$(Get-Date) : Processing Mail Traffic Report"
     Write-Output "$(Get-Date) :      --> Getting mail traffic data"
-    $mailTrafficData = @()
-    $pageSize = 5000
-    $page = 0
-    Do {
-        $page++
-        $temp = Get-MailTrafficReport -StartDate $startDate -EndDate ($endDate) -PageSize $pageSize -Page $page | Select-Object Date,EventType,Direction,MessageCount
-        $mailTrafficData = $mailTrafficData + $temp
-    } While ($temp.count -eq $pageSize)
-    # $mailTrafficData | Format-Table
+    <#
+        v1.2.3
+        * Fixed inbound count. All inbound messages are now counted.
+        * Fixed outbound count. All outbound messages are now counted.
+        * Fixed spam count count. All inbound and outbound spam are now counted.
+        * Fixed malware count count. All inbound and outbound spam are now counted.
+    #>
+    $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
     $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
     $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" } | Measure-Object MessageCount -Sum).Sum
     $mailTraffic.Spam = ($mailTrafficData | Where-Object { $_.EventType -like "spam*" } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Malware = ($mailTrafficData | Where-Object { $_.EventType -eq 'malware' } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Malware = ($mailTrafficData | Where-Object { $_.EventType -like "*malware" } | Measure-Object MessageCount -Sum).Sum
 
     $html += '<hr><table id="section"><tr><th>Mail Traffic</th></tr></table><hr>'
     $html += '<table id="data">'
@@ -768,16 +767,11 @@ if ($reportMailTraffic) {
 
 # ATP Mail detections
 if ($reportATPDetections) {
+    <#
+        v1.2.3 - Replaced Get-MailTrafficATPReport with Get-ATPTotalTrafficReport.
+    #>
     Write-Output "$(Get-Date) : Processing ATP Mail Detection Report"
-    $atpTrafficReport = @()
-    $pageSize = 5000
-    $page = 0
-    Do {
-        $page++
-        $temp = Get-ATPTotalTrafficReport -StartDate $startDate -EndDate ($endDate).AddDays(-1) -PageSize $pageSize -Page $page | Select-Object EventType, MessageCount
-        $atpTrafficReport = $atpTrafficReport + $temp
-    } While ($temp.count -eq $pageSize)
-    #$atpTrafficReport | Format-Table
+    $atpTrafficReport = Get-ATPTotalTrafficReport -StartDate $startDate -EndDate ($endDate).AddDays(-1) -AggregateBy Summary | Select-Object EventType, MessageCount
     Write-Output "$(Get-Date) :      --> Getting ATP SafeLinks blocked message count"
     $atpSafeLinks = $atpTrafficReport | Where-Object { $_.EventType -eq 'TotalSafeLinkCount' }
     Write-Output "$(Get-Date) :      --> Getting ATP SafeAttachments blocked message count"
@@ -795,6 +789,10 @@ if ($reportATPDetections) {
 }
 
 # Top 10 mail traffic reports
+<#
+    v1.2.3
+    * Replace Get-MailTrafficTopReport wit MailTrafficSummaryReport
+#>
 if ($reportTopMailTraffic) {
     Write-Output "$(Get-Date) : Processing Top Mail Traffic Report"
 
