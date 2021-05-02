@@ -60,7 +60,7 @@ Changed:
 .DESCRIPTION
     Microsoft 365 Usage Reporting Script using Microsoft Graph API and Exchange Online PowerShell V2
 .EXAMPLE
-    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.json -GraphApiAccessToken <accesstoken>
+    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.json
 
 .INPUTS
     Inputs (if any)
