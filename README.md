@@ -90,8 +90,8 @@ The reports that can be exported using this script are:
 
   - Fixed inbound count. All inbound messages are now counted.
   - Fixed outbound count. All outbound messages are now counted.
-  - Fixed spam count count. All inbound and outbound spam are now counted.
-  - Fixed malware count count. All inbound and outbound spam are now counted.
+  - Fixed spam count. All inbound and outbound spam are now counted.
+  - Fixed malware count. All inbound and outbound spam are now counted.
   - Replaced Get-MailTrafficATPReport with Get-ATPTotalTrafficReport.
   - Replace Get-MailTrafficTopReport wit MailTrafficSummaryReport
 
