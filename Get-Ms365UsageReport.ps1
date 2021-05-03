@@ -6,9 +6,9 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2.3
+.VERSION 1.2.4
 
-.GUID 19fea2a0-ff5a-4f00-8d15-4e721d5c3c7b
+.GUID 0a5697c4-b4d6-470b-a851-50727da79de8
 
 .AUTHOR June Castillote
 
@@ -743,10 +743,17 @@ if ($reportMailTraffic) {
     $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
-    $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Spam = ($mailTrafficData | Where-Object { $_.EventType -like "spam*" } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Malware = ($mailTrafficData | Where-Object { $_.EventType -like "*malware" } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Spam = ($mailTrafficData | Where-Object { 
+        $_.EventType -eq "SpamIPBlock" -or 
+        $_.EventType -eq "SpamDBEBFilter" -or 
+        $_.EventType -eq "SpamEnvelopeBlock" -or 
+        $_.EventType -eq "SpamContentFiltered"
+    } | Measure-Object MessageCount -Sum).Sum
+    $mailTraffic.Malware = ($mailTrafficData | Where-Object { 
+        $_.EventType -eq "Malware" 
+    } | Measure-Object MessageCount -Sum).Sum
 
     $html += '<hr><table id="section"><tr><th>Mail Traffic</th></tr></table><hr>'
     $html += '<table id="data">'
