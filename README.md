@@ -8,7 +8,7 @@
 
 - [Ms365UsageReport PowerShell Script (1.v2)](#ms365usagereport-powershell-script-1v2)
   - [Overview](#overview)
-  - [What's New in Version v1.2.3](#whats-new-in-version-v123)
+  - [What's New in Version v1.2.4](#whats-new-in-version-v124)
   - [Requirements](#requirements)
   - [How to Get the Script](#how-to-get-the-script)
     - [Files List](#files-list)
@@ -86,14 +86,10 @@ The reports that can be exported using this script are:
   - Total Private Chat Messages
   - Device Usage Distribution
 
-## What's New in Version v1.2.3
+## What's New in Version v1.2.4
 
-  - Fixed inbound count. All inbound messages are now counted.
-  - Fixed outbound count. All outbound messages are now counted.
-  - Fixed spam count. All inbound and outbound spam are now counted.
-  - Fixed malware count. All inbound and outbound spam are now counted.
-  - Replaced Get-MailTrafficATPReport with Get-ATPTotalTrafficReport.
-  - Replace Get-MailTrafficTopReport wit MailTrafficSummaryReport
+  - Fixed inbound mail count.
+  - Fixed outbound mail count.
 
 ## Requirements
 
