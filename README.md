@@ -85,10 +85,11 @@ The reports that can be exported using this script are:
   - Total Private Chat Messages
   - Device Usage Distribution
 
-## What's New in Version v1.2.4
+## What's New in Version v1.2.5
 
-  - Fixed inbound mail count.
-  - Fixed outbound mail count.
+  - Support for report theming.
+  - Migrated configuration file format from `JSON` to `YAML`. YAML is more human-readable than JSON.
+    - New requirement: `powershell-yaml` module.
 
 ## Requirements
 
@@ -105,9 +106,11 @@ The reports that can be exported using this script are:
 
 - Windows PowerShell 5.1.
 
-- The [*ExchangeOnlineManagement PowerShell Module*](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/)- must be installed on the computer where you will be running this script. The minimum version required is 2.0.3.
+- The [*ExchangeOnlineManagement PowerShell Module*](https://www.powershellgallery.com/packages/ExchangeOnlineManagement/)- must be installed on the computer where you will be running this script. The *minimum* version required is `2.0.3`.
 
-- The [*MSAL.PS PowerShell Module*](https://www.powershellgallery.com/packages/MSAL.PS/) must be installed on the computer where you will be running this script. The minimum version required is 4.16.0.4.
+- The [*MSAL.PS PowerShell Module*](https://www.powershellgallery.com/packages/MSAL.PS/) must be installed on the computer where you will be running this script. The *minimum* version required is `4.16.0.4`.
+
+- The [*powershell-yaml module*](https://www.powershellgallery.com/packages/powershell-yaml) must be installed. The script will use this module to process the configuration file. The *minimum* version required is `0.4.2`.
 
 - A valid mailbox that will be used for sending the report. A shared mailbox (no license) is recommended.
 
@@ -131,9 +134,9 @@ Otherwise, you can fork, [*clone*](https://github.com/junecastillote/Ms365UsageR
 
 ### Make a New Configuration File
 
-The script uses configuration details from a JSON document. You can have many configuration files with different settings if you want.
+The script uses configuration details from a YAML document. You can have many configuration files with different settings if you want.
 
-To create a new configuration, make a copy of the *config_template.json*. I recommend for you to use your Microsoft 365 tenant domain as the name of the configuration file for easier identification.
+To create a new configuration, make a copy of the *config_template.yml*. I recommend for you to use your Microsoft 365 tenant domain as the name of the configuration file for easier identification.
 
 ![Create a copy of the configuration file](images/copy_config.png)<br>Create a copy of the configuration file
 
@@ -145,51 +148,46 @@ Open your JSON file using any text editor. It would be best to use an editor tha
 
 The code below shows the default content of the configuration JSON file. The meaning of each setting is explained in the next section.
 
-```JSON
-{
-    "auth": {
-        "tenantName": "<tenant>.onmicrosoft.com",
-        "msGraphAuthType": "1",
-        "msGraphAppID": "",
-        "msGraphAppKey": "",
-        "msGraphAppCertificateThumbprint": "",
-        "exchangeAuthType": "1",
-        "exchangeAppID": "",
-        "exchangeAppCertificateThumbprint": "",
-        "exchangeCredentialFile": ""
-    },
-    "parameters": {
-        "transLog": "1",
-        "saveRawData": "1",
-        "period": "30"
-    },
-    "mail": {
-        "sendEmail": "1",
-        "fromAddress": "sender@domain.com",
-        "toAddress": "recipient1@domain.com,recipient2@domain.com",
-        "ccAddress": "",
-        "bccAddress": ""
-    },
-    "reports": {
-        "license": "1",
-        "sharepoint": "1",
-        "onedrive": "1",
-        "SkypeForBusiness": "1",
-        "teams": "1",
-        "Office365Groups": "1",
-        "exchangeMailbox": "1",
-        "exchangeApp": "1",
-        "exchangeTopMailTraffic": "1",
-        "exchangeMailTraffic": "1",
-        "exchangeATPDetections": "1",
-        "ms365ActiveUsers": "1",
-        "ms365ActivationUsers": "1"
-    },
-    "developer": {
-        "graphApiVersion": "beta",
-        "scriptCompatibleVersion": "1.2"
-    }
-}
+```YAML
+auth:
+  tenantName: <tenant>.onmicrosoft.com
+  msGraphAuthType: "1"
+  msGraphAppID: ""
+  msGraphAppKey: ""
+  msGraphAppCertificateThumbprint: ""
+  exchangeAuthType: "1"
+  exchangeAppID: ""
+  exchangeAppCertificateThumbprint: ""
+  exchangeCredentialFile: ""
+parameters:
+  transLog: "1"
+  saveRawData: "1"
+  period: "30"
+mail:
+  sendEmail: ""
+  fromAddress: sender@domain.com
+  toAddress: recipient1@domain.com,recipient2@domain.com
+  ccAddress: ""
+  bccAddress: ""
+reports:
+  license: "1"
+  sharepoint: "1"
+  onedrive: "1"
+  SkypeForBusiness: "1"
+  teams: "1"
+  Office365Groups: "1"
+  exchangeMailbox: "1"
+  exchangeApp: "1"
+  exchangeTopMailTraffic: "1"
+  exchangeMailTraffic: "1"
+  exchangeATPDetections: "1"
+  ms365ActiveUsers: "1"
+  ms365ActivationUsers: "1"
+aesthetic:
+  theme: ""
+developer:
+  graphApiVersion: beta
+  scriptCompatibleVersion: "1.2.5"
 ```
 
 <hr>
@@ -428,6 +426,8 @@ Now you should have the following details available:
 ### Creating an Encrypted Exchange Online Credentials File
 
 If you're using a username + password to authenticate to Exchange Online, then you'll need to save your encrypted credentials to a file.
+
+> Note: The Exchange Online credential you'll be using must at least have View-Only Organization Management permission
 
 1. In PowerShell, enter this command - `Get-Credential | Export-CliXml <PATH\TO\FILE.xml>`.
 2. When prompted, enter the username and password of the Exchange Online credential to use.

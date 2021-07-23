@@ -3,10 +3,11 @@
 #Requires -PSEdition Desktop
 #Requires -Modules @{ ModuleName="MSAL.PS"; ModuleVersion="4.16.0.4" }
 #Requires -Modules @{ ModuleName="ExchangeOnlineManagement"; ModuleVersion="2.0.3" }
+#Requires -Modules @{ ModuleName="powershell-yaml"; ModuleVersion="0.4.2" }
 
 <#PSScriptInfo
 
-.VERSION 1.2.4
+.VERSION 1.2.5
 
 .GUID 0a5697c4-b4d6-470b-a851-50727da79de8
 
@@ -60,7 +61,7 @@ Changed:
 .DESCRIPTION
     Microsoft 365 Usage Reporting Script using Microsoft Graph API and Exchange Online PowerShell V2
 .EXAMPLE
-    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.json
+    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.yml
 
 .INPUTS
     Inputs (if any)
@@ -132,7 +133,7 @@ catch {
     return $null
 }
 
-$options = Get-Content $Config -Raw | ConvertFrom-Json
+$options = Get-Content $Config -Raw | ConvertFrom-Yaml
 
 $transLog = $options.parameters.transLog
 
@@ -154,11 +155,11 @@ if ($reportLicenseAssigned) { $enabledReport += "License" }
 
 # MS365 Active Users
 $reportMs365ActiveUsers = $options.reports.ms365ActiveUsers
-if ($reportMs365ActiveUsers) { $enabledReport += "Users" }
+if ($reportMs365ActiveUsers) { $enabledReport += "User" }
 
 # MS365 Activation
 $reportMs365ActivationUsers = $options.reports.ms365ActivationUsers
-if ($reportMs365ActivationUsers) { $enabledReport += "Activations" }
+if ($reportMs365ActivationUsers) { $enabledReport += "Activation" }
 
 # Exchange
 $reportMailboxUsageAndProvisioning = $options.reports.exchangeMailbox
@@ -381,19 +382,20 @@ $html += @'
 		padding:3px 7px 2px 7px;
         font-size:1.8em;
 		text-align:left;
-		background-color:#fff;
-		color:#000;
 	}
+#heading th
+    {
+        text-align:left;
+    }
 #section
 	{
-		font-family:"Segoe UI";
+        font-family:'Segoe UI';
 		width:fit-content;
 		border-collapse:collapse;
 		font-size:1.2em;
 		text-align:left;
 		padding-top:5px;
 		padding-bottom:4px;
-		background-color:#fff;
         color:#000;
 	}
 #data
@@ -712,9 +714,9 @@ if ($reportOffice365GroupsProvisioning) {
     }
 
     $o365Groups = "" | Select-Object LiveGroups, CreatedGroups, DeletedGroups
-    $o365Groups.LiveGroups = $liveGroups.count
-    $o365Groups.CreatedGroups = ($liveGroups | Where-Object { ([datetime]$_.createdDateTime) -ge $startDate }).Count
-    $o365Groups.DeletedGroups = ($deletedGroups | Where-Object { ([datetime]$_.deletedDateTime) -ge $startDate }).Count
+    [int]$o365Groups.LiveGroups = $liveGroups.count
+    [int]$o365Groups.CreatedGroups = ($liveGroups | Where-Object { ([datetime]$_.createdDateTime) -ge $startDate }).Count
+    [int]$o365Groups.DeletedGroups = ($deletedGroups | Where-Object { ([datetime]$_.deletedDateTime) -ge $startDate }).Count
 
     $html += '<hr><table id="section"><tr><th>Microsoft 365 Groups</th></tr></table><hr>'
     $html += '<table id="data">'
@@ -743,16 +745,16 @@ if ($reportMailTraffic) {
     $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
-    $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Spam = ($mailTrafficData | Where-Object { 
-        $_.EventType -eq "SpamIPBlock" -or 
-        $_.EventType -eq "SpamDBEBFilter" -or 
-        $_.EventType -eq "SpamEnvelopeBlock" -or 
+    [int]$mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
+    [int]$mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
+    [int]$mailTraffic.Spam = ($mailTrafficData | Where-Object {
+        $_.EventType -eq "SpamIPBlock" -or
+        $_.EventType -eq "SpamDBEBFilter" -or
+        $_.EventType -eq "SpamEnvelopeBlock" -or
         $_.EventType -eq "SpamContentFiltered"
     } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Malware = ($mailTrafficData | Where-Object { 
-        $_.EventType -eq "Malware" 
+    [int]$mailTraffic.Malware = ($mailTrafficData | Where-Object {
+        $_.EventType -eq "Malware"
     } | Measure-Object MessageCount -Sum).Sum
 
     $html += '<hr><table id="section"><tr><th>Mail Traffic</th></tr></table><hr>'
