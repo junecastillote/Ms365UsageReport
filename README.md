@@ -1,4 +1,4 @@
-# Ms365UsageReport PowerShell Script (v1.2)  <!-- omit in toc -->
+# Ms365UsageReport PowerShell Script (v1.2.5)  <!-- omit in toc -->
 
 [![GitHub issues](https://img.shields.io/github/issues/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/issues)
 
@@ -7,13 +7,14 @@
 [![GitHub license](https://img.shields.io/github/license/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/blob/main/LICENSE)
 
 - [Overview](#overview)
-- [What's New in Version v1.2.4](#whats-new-in-version-v124)
+- [What's New in Version v1.2.5](#whats-new-in-version-v125)
 - [Requirements](#requirements)
 - [How to Get the Script](#how-to-get-the-script)
   - [Files List](#files-list)
 - [Configuration](#configuration)
   - [Make a New Configuration File](#make-a-new-configuration-file)
-  - [JSON Settings Explained](#json-settings-explained)
+  - [YAML Settings Explained](#yaml-settings-explained)
+  - [Change the Header Logo](#change-the-header-logo)
 - [How to Use the Script](#how-to-use-the-script)
   - [Syntax](#syntax)
   - [Running the Script](#running-the-script)
@@ -87,7 +88,7 @@ The reports that can be exported using this script are:
 
 ## What's New in Version v1.2.5
 
-  - Support for report theming.
+  - Theme update.
   - Migrated configuration file format from `JSON` to `YAML`. YAML is more human-readable than JSON.
     - New requirement: `powershell-yaml` module.
 
@@ -120,12 +121,10 @@ If you only plan to use the script, you can [*download the latest release*](http
 
 Otherwise, you can fork, [*clone*](https://github.com/junecastillote/Ms365UsageReport.git), or [*download*](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [*repository*](https://github.com/junecastillote/Ms365UsageReport). After downloading, extract the files to your preferred location.
 
-![Ms365UsageReport Files](images/script_files.png)<br>Script files
-
 ### Files List
 
 - `Get-Ms365UsageReport.ps1` - this is the main script file.
-- `config_template.json` - this is the configuration file template.
+- `config_template.yaml` - this is the configuration file template.
 - `LICENSE` - the license document for this repository.
 - `README.md` - this document that you are reading right now.
 - `.gitattributes` and `.gitignore` - ignore these files, they don't affect the script.
@@ -142,103 +141,101 @@ To create a new configuration, make a copy of the *config_template.yml*. I recom
 
 > You can use any name for the new configuration file. What's important is the contents, not the file name.
 
-### JSON Settings Explained
+### YAML Settings Explained
 
-Open your JSON file using any text editor. It would be best to use an editor that has syntax/language support like [*Notepad++*](https://notepad-plus-plus.org/downloads/), [*Atom*](https://atom.io/), or [*Visual Studio Code*](https://code.visualstudio.com/).
+Open your YAML file using any text editor. It would be best to use an editor that has syntax/language support like [*Notepad++*](https://notepad-plus-plus.org/downloads/), [*Atom*](https://atom.io/), or [*Visual Studio Code*](https://code.visualstudio.com/).
 
-The code below shows the default content of the configuration JSON file. The meaning of each setting is explained in the next section.
+The code below shows the default content of the configuration YAML file. The meaning of each setting is explained in the next section.
 
 ```YAML
 auth:
   tenantName: <tenant>.onmicrosoft.com
-  msGraphAuthType: "1"
-  msGraphAppID: ""
-  msGraphAppKey: ""
-  msGraphAppCertificateThumbprint: ""
-  exchangeAuthType: "1"
-  exchangeAppID: ""
-  exchangeAppCertificateThumbprint: ""
-  exchangeCredentialFile: ""
+  msGraphAuthType: 2 # 1 = Certificate, 2 = Secret
+  msGraphAppID:
+  msGraphAppKey:
+  msGraphAppCertificateThumbprint:
+  exchangeAuthType: 2 # 1 = Certificate, 2 = Secret
+  exchangeAppID:
+  exchangeAppCertificateThumbprint:
+  exchangeCredentialFile:
 parameters:
-  transLog: "1"
-  saveRawData: "1"
-  period: "30"
+  transLog: false
+  saveRawData: false
+  period: 30
 mail:
-  sendEmail: ""
+  sendEmail: false
   fromAddress: sender@domain.com
   toAddress: recipient1@domain.com,recipient2@domain.com
-  ccAddress: ""
-  bccAddress: ""
+  ccAddress:
+  bccAddress:
 reports:
-  license: "1"
-  sharepoint: "1"
-  onedrive: "1"
-  SkypeForBusiness: "1"
-  teams: "1"
-  Office365Groups: "1"
-  exchangeMailbox: "1"
-  exchangeApp: "1"
-  exchangeTopMailTraffic: "1"
-  exchangeMailTraffic: "1"
-  exchangeATPDetections: "1"
-  ms365ActiveUsers: "1"
-  ms365ActivationUsers: "1"
-aesthetic:
-  theme: ""
+  license: true
+  ms365ActiveUsers: true
+  ms365ActivationUsers: true
+  exchangeMailbox: true
+  exchangeApp: true
+  exchangeTopMailTraffic: true
+  exchangeMailTraffic: true
+  exchangeATPDetections: true
+  Office365Groups: true
+  sharepoint: true
+  onedrive: true
+  SkypeForBusiness: true
+  teams: true
 developer:
   graphApiVersion: beta
-  scriptCompatibleVersion: "1.2.5"
+  scriptCompatibleVersion: 1.2.5
 ```
 
 <hr>
 
-| AUTH                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tenantName`                       | This is your Microsoft 365 tenant's organization name.<br>Example: `contoso.onmicrosoft.com`                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `msGraphAuthType`                  | Determines the Graph API credential type.<br><br>`"msGraphAuthType": "1"` = Use Certificate to authenticate<br>`"msGraphAuthType": "2"` = Use Client Secret to authenticate                                                                                                                                                                                                                                                                                                                                                                                         |
-| `msGraphAppID`                     | This is the registered app's Application ID. (refer to *[Register a New Azure AD App](#register-a-new-azure-ad-app)*).                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `msGraphAppKey`                    | This is the registered app's Secret Key. (refer to *[Adding a Client Secret](#option-1-adding-a-client-secret)*).                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `msGraphAppCertificateThumbprint`  | This is the registered app's Certificate Thumbprint. (refer to *[Creating and Uploading a Self-Signed Certificate*](#option-2-creating-and-uploading-a-self-signed-certificate)*).                                                                                                                                                                                                                                                                                                                                                                                  |
-| `exchangeAuthType`                 | Determines the Exchange Credential authentication type.<br><br>`"exchangeAuthType": "1"` = Use Certificate to authenticate<br>`"exchangeAuthType": "2"` = Use Basic Auth (Username+Password) Credential to authenticate                                                                                                                                                                                                                                                                                                                                             |
-| `exchangeAppID`                    | This is the registered app's Application ID.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `"exchangeAuthType": "1"`<br>If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this.                                                                                                                                                 |
+| AUTH                               |                                                              |
+| ---------------------------------- | ------------------------------------------------------------ |
+| `tenantName`                       | This is your Microsoft 365 tenant's organization name.<br>Example: `contoso.onmicrosoft.com` |
+| `msGraphAuthType`                  | Determines the Graph API credential type.<br><br>`"msGraphAuthType": "1"` = Use Certificate to authenticate<br>`"msGraphAuthType": "2"` = Use Client Secret to authenticate |
+| `msGraphAppID`                     | This is the registered app's Application ID. (refer to *[Register a New Azure AD App](#register-a-new-azure-ad-app)*). |
+| `msGraphAppKey`                    | This is the registered app's Secret Key. (refer to *[Adding a Client Secret](#option-1-adding-a-client-secret)*). |
+| `msGraphAppCertificateThumbprint`  | This is the registered app's Certificate Thumbprint. (refer to *[Creating and Uploading a Self-Signed Certificate*](#option-2-creating-and-uploading-a-self-signed-certificate)*). |
+| `exchangeAuthType`                 | Determines the Exchange Credential authentication type.<br><br>`"exchangeAuthType": "1"` = Use Certificate<br>`"exchangeAuthType": "2"` = Use encrypted username and password |
+| `exchangeAppID`                    | This is the registered app's Application ID.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `"exchangeAuthType": "1"`<br>If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this. |
 | `exchangeAppCertificateThumbprint` | This is the registered app's Certificate Thumbprint.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `"exchangeAuthType": "1"`<br><br>Make sure that the certificate is in the personal certificate store and uploaded to the registered Exchange app in Azure AD.<br><br>If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this. |
-| `exchangeCredentialFile`           | The file path to the encrypted credential file.<br><br>Refer to: *[Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)*<br><br>When you enter the path in the JSON configuration, make sure to use double-backslash.<br><br>Example:<br>`"exchangeCredentialFile": "C:\\temp\\cred.xml"`                                                                                                                                                                                                               |
+| `exchangeCredentialFile`           | The file path to the encrypted credential file.<br><br>Refer to: *[Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)*<br><br>When you enter the path in the YAML configuration, make sure to use double-backslash.<br><br>Example:<br>`"exchangeCredentialFile": "C:\\temp\\cred.xml"` |
 
 <hr>
 
-| PARAMETERS    |                                                                                                                               |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `transLog`    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the *<script_root>\transcript- folder. |
-| `saveRawData` | Turn ON or OFF the saving of raw data. Raw data files are saved to the *<script_root>\reports\<organization name>-            |
-| `period`      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`.                                              |
+| PARAMETERS    |                                                              |
+| ------------- | ------------------------------------------------------------ |
+| `transLog`    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the `<script_root>\transcript` folder. |
+| `saveRawData` | Turn ON or OFF the saving of raw data. Raw data files are saved to the `<script_root>\reports\<organization name>`. |
+| `period`      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
 
 <hr>
 
-| MAIL          |                                                                                                                                                                                                                                                                            |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sendEmail`   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html*<br><br>`"sendEmail": "1"` = ON<br>`"sendEmail": ""` = OFF                                                                 |
+| MAIL          |                                                              |
+| ------------- | ------------------------------------------------------------ |
+| `sendEmail`   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html*<br><br>`true` or `false` |
 | `fromAddress` | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license.<br>Example:<br>`"fromAddress": "sender@domain.com"` |
-| `toAddress`   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`"toAddress": "recipient1@domain.com,recipient2@domain.com"`                                                        |
-| `ccAddress`   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example: <br>"ccAddress": "recipient1@domain.com,recipient2@domain.com"`                                                        |
-| `bccAddress`  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`"bccAddress": "recipient1@domain.com,recipient2@domain.com"`                                                      |
+| `toAddress`   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`"toAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| `ccAddress`   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example: <br>"ccAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| `bccAddress`  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`"bccAddress": "recipient1@domain.com,recipient2@domain.com"` |
 
 <hr>
 
-| REPORTS                  |                                                                                                                                             |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `license`                | Turn ON or OFF the license assignment count report.<br>ON: `"license": "1"` <br>OFF: `"license": ""`                                        |
-| `sharepoint`             | Turn ON or OFF the SharePoint Online reports.<br>ON: `"sharepoint": "1"` <br>OFF: `"sharepoint": ""`                                        |
-| `onedrive`               | Turn ON or OFF the OneDrive for Business reports.<br>ON: `"onedrive": "1"` <br>OFF: `"onedrive": ""`                                        |
-| `SkypeForBusiness`       | Turn ON or OFF the Skype for Business reports.<br>ON: `"SkypeForBusiness": "1"` <br>OFF: `"SkypeForBusiness": ""`                           |
-| `teams`                  | Turn ON or OFF the Microsoft Teams report.<br>ON: `"teams": "1"` <br>OFF: `"teams": ""`                                                     |
-| `Office365Groups`        | Turn ON or OFF the Microsoft 365 Groups report.<br>ON: `"Office365Groups": "1"` <br>OFF: `"Office365Groups": ""`                            |
-| `exchangeMailbox`        | Turn ON or OFF the Exchange Online Mailbox reports.<br>ON: `"exchangeMailbox": "1"` <br>OFF: `"exchangeMailbox": ""`                        |
-| `exchangeApp`            | Turn ON or OFF the Exchange Online Email App report.<br>ON: `"exchangeApp": "1"` <br>OFF: `"exchangeApp": ""`                               |
-| `exchangeMailTraffic`    | Turn ON or OFF the Exchange Online Mail Traffic reports.<br>ON: `"exchangeMailTraffic": "1"` <br>OFF: `"exchangeMailTraffic": ""`           |
-| `exchangeTopMailTraffic` | Turn ON or OFF the Exchange Online Mail Top Traffic reports.<br>ON: `"exchangeTopMailTraffic": "1"` <br>OFF: `"exchangeTopMailTraffic": ""` |
-| `exchangeATPDetections`  | Turn ON or OFF the Exchange Online Mail ATP detection reports.<br>ON: `"exchangeATPDetections": "1"` <br>OFF: `"exchangeATPDetections": ""` |
-| `ms365ActiveUsers`       | Turn ON or OFF the Office 365 Active Users report.<br>ON: `"ms365ActiveUsers": "1"` <br>OFF: `"ms365ActiveUsers": ""`                       |
-| `ms365ActivationUsers`   | Turn ON or OFF the Office 365 Activations by Users report.<br>ON: `"ms365ActivationUsers": "1"` <br>OFF: `"ms365ActivationUsers": ""`       |
+| REPORTS                  |                                                              |
+| ------------------------ | ------------------------------------------------------------ |
+| `license`                | Turn ON or OFF the license assignment count report.<br>`true` or `false` |
+| `sharepoint`             | Turn ON or OFF the SharePoint Online reports.<br>`true` or `false` |
+| `onedrive`               | Turn ON or OFF the OneDrive for Business reports.<br>`true` or `false` |
+| `SkypeForBusiness`       | Turn ON or OFF the Skype for Business reports.<br>`true` or `false` |
+| `teams`                  | Turn ON or OFF the Microsoft Teams report.<br>`true` or `false` |
+| `Office365Groups`        | Turn ON or OFF the Microsoft 365 Groups report.<br>`true` or `false` |
+| `exchangeMailbox`        | Turn ON or OFF the Exchange Online Mailbox reports.<br>`true` or `false` |
+| `exchangeApp`            | Turn ON or OFF the Exchange Online Email App report.<br>`true` or `false` |
+| `exchangeMailTraffic`    | Turn ON or OFF the Exchange Online Mail Traffic reports.<br>`true` or `false` |
+| `exchangeTopMailTraffic` | Turn ON or OFF the Exchange Online Mail Top Traffic reports.<br>`true` or `false` |
+| `exchangeATPDetections`  | Turn ON or OFF the Exchange Online Mail ATP detection reports.<br>`true` or `false` |
+| `ms365ActiveUsers`       | Turn ON or OFF the Office 365 Active Users report.<br>`true` or `false` |
+| `ms365ActivationUsers`   | Turn ON or OFF the Office 365 Activations by Users report.<br>`true` or `false` |
 
 <hr>
 
@@ -247,25 +244,31 @@ developer:
 | `graphApiVersion`         | **DO NOT CHANGE!!! FOR DEVELOPMENT USE ONLY**.<br>This defines the Microsoft Graph API version used by the script. |
 | `scriptCompatibleVersion` | **DO NOT CHANGE!!! FOR DEVELOPMENT USE ONLY**.                                                                     |
 
+### Change the Header Logo
+
+To change the report banner logo, replace the `<resource>\logo.png` file.
+
+![Logo](resource/logo.png)
+
 ## How to Use the Script
 
 ### Syntax
 
-The `Get-Ms365UsageReport.ps1` script accepts two (1) mandatory parameter.
+The `Get-Ms365UsageReport.ps1` script accepts one (1) mandatory parameter.
 
-- `-Config` - This parameter accepts the path of the [JSON configuration](#configuration) file.
+- `-Config` - This parameter accepts the path of the [YAML configuration](#configuration) file.
 
 ```PowerShell
-.\Get-Ms365UsageReport.ps1 -Config <PATH TO JSON FILE>
+.\Get-Ms365UsageReport.ps1 -Config <PATH TO YAML FILE>
 ```
 
 ### Running the Script
 
 1. Open PowerShell and change the working directory to where you saved the script.
-2. Run the script. In the example below, the configuration file used is *poshlab.ml.json- which is in the same folder as the script.
+2. Run the script. In the example below, the configuration file used is `poshlab.ml.yml` - which is in the same folder as the script.
 
    ```powershell
-   .\Get-Ms365UsageReport.ps1 -config .\poshlab.ml.json
+   .\Get-Ms365UsageReport.ps1 -config .\poshlab.ml.yml
    ```
 
 You should see a screen output similar to the one below.
