@@ -3,10 +3,11 @@
 #Requires -PSEdition Desktop
 #Requires -Modules @{ ModuleName="MSAL.PS"; ModuleVersion="4.16.0.4" }
 #Requires -Modules @{ ModuleName="ExchangeOnlineManagement"; ModuleVersion="2.0.3" }
+#Requires -Modules @{ ModuleName="powershell-yaml"; ModuleVersion="0.4.2" }
 
 <#PSScriptInfo
 
-.VERSION 1.2.4
+.VERSION 1.2.5
 
 .GUID 0a5697c4-b4d6-470b-a851-50727da79de8
 
@@ -50,6 +51,8 @@ Add Config item:
 Changed:
     * [√] Revert Get-ExoMailbox to Get-Mailbox due to REST-related issues.
 
+Icons: https://www.iconfinder.com/iconsets/logos-microsoft-office-365
+
 .PRIVATEDATA
 
 #>
@@ -60,7 +63,7 @@ Changed:
 .DESCRIPTION
     Microsoft 365 Usage Reporting Script using Microsoft Graph API and Exchange Online PowerShell V2
 .EXAMPLE
-    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.json
+    PS C:\> .\Get-Ms365UsageReport.ps1 -Config .\config.yml
 
 .INPUTS
     Inputs (if any)
@@ -109,6 +112,17 @@ LogEnd
 $WarningPreference = "SilentlyContinue"
 $script_root = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition
 $scriptInfo = Test-ScriptFileInfo -Path $MyInvocation.MyCommand.Definition
+$styleFolder = "$($script_root)\style"
+$resourceFolder = "$($script_root)\resource"
+
+$logoFile = "$($resourceFolder)\logo.png"
+$office365IconFile = "$($resourceFolder)\office365.png"
+$exchangeIconFile = "$($resourceFolder)\exchange.png"
+$sharepointIconFile = "$($resourceFolder)\sharepoint.png"
+$onedriveIconFile = "$($resourceFolder)\onedrive.png"
+$skypeIconFile = "$($resourceFolder)\skype.png"
+$teamsIconFile = "$($resourceFolder)\teams.png"
+$settingsIconFile = "$($resourceFolder)\settings.png"
 
 # $headerParams = @{'Authorization' = "Bearer $($GraphApiAccessToken)" }
 
@@ -132,7 +146,7 @@ catch {
     return $null
 }
 
-$options = Get-Content $Config -Raw | ConvertFrom-Json
+$options = Get-Content $Config -Raw | ConvertFrom-Yaml
 
 $transLog = $options.parameters.transLog
 
@@ -140,6 +154,9 @@ $transLog = $options.parameters.transLog
 Write-Output "$(Get-Date) : Using configuration from $($Config)"
 
 $enabledReport = @()
+
+# Show or Hide Logo
+$showLogo = $options.parameters.showLogo
 
 # Select reports from config
 # Parameters
@@ -154,11 +171,11 @@ if ($reportLicenseAssigned) { $enabledReport += "License" }
 
 # MS365 Active Users
 $reportMs365ActiveUsers = $options.reports.ms365ActiveUsers
-if ($reportMs365ActiveUsers) { $enabledReport += "Users" }
+if ($reportMs365ActiveUsers) { $enabledReport += "User" }
 
 # MS365 Activation
 $reportMs365ActivationUsers = $options.reports.ms365ActivationUsers
-if ($reportMs365ActivationUsers) { $enabledReport += "Activations" }
+if ($reportMs365ActivationUsers) { $enabledReport += "Activation" }
 
 # Exchange
 $reportMailboxUsageAndProvisioning = $options.reports.exchangeMailbox
@@ -368,68 +385,18 @@ Get-ChildItem -Path "$($reportFolder)\*" -Exclude debug.log | Remove-Item -Force
 
 # HTML report header
 $mailSubject = "[$($organizationName)] Microsoft 365 Usage Report for the period of " + ("{0:yyyy-MM-dd}" -f $startDate ) + " to " + ("{0:yyyy-MM-dd}" -f $endDate)
-$html = "<html>"
-$html += "<head><title>$($mailSubject)</title>"
-$html += "<meta http-equiv=""Content-Type"" content=""text/html; charset=ISO-8859-1"" />"
-$html += '<style type="text/css">' + "`n"
-$html += @'
-#heading
-	{
-		font-family:"Segoe UI Light";
-		width:fit-content;
-        border-collapse:collapse;
-		padding:3px 7px 2px 7px;
-        font-size:1.8em;
-		text-align:left;
-		background-color:#fff;
-		color:#000;
-	}
-#section
-	{
-		font-family:"Segoe UI";
-		width:fit-content;
-		border-collapse:collapse;
-		font-size:1.2em;
-		text-align:left;
-		padding-top:5px;
-		padding-bottom:4px;
-		background-color:#fff;
-        color:#000;
-	}
-#data
-	{
-		font-family:'Segoe UI';
-		border-collapse:collapse;
-	}
-#data td, #data th
-	{
-		font-size:0.8em;
-		border:1px solid #DDD;
-		padding:3px 7px 2px 7px;
-		width:fit-content;
-	}
-#data th
-	{
-		padding-top:5px;
-		padding-bottom:4px;
-		background-color:#fff;
-		color:#000; text-align:left;
-	}
-#data td
-	{
-		padding-top:5px;
-		padding-bottom:4px;
-		text-align:left;
-
-	}
-'@
-$html += "`n"
+$html = '<html><head><title>' + $($mailSubject) + '</title>'
+$html += '<style type="text/css">'
+$html += (Get-Content $styleFolder\style.css -Raw)
 $html += '</style>'
-$html += "</head><body>"
-$html += '<table id="heading">'
-$html += '<tr><th>' + $organizationName + '</th></tr>'
-$html += '<tr><th>Microsoft 365 Usage Report</th></tr>'
-$html += '<tr><th>' + ("{0:yyyy-MM-dd}" -f $startDate ) + ' to ' + ("{0:yyyy-MM-dd}" -f $endDate) + '</th></tr>'
+$html += '</head><body>'
+$html += '<table id="mainTable">'
+if ($showLogo) {
+    $html += '<tr><td class="placeholder"><img src="' + $logoFile + '"></td>'
+}
+$html += '<td class="vl"></td>'
+$html += '<td class="title">' + $organizationName + '<br>' + 'Microsoft 365 Usage Report' + '<br>' + ("{0:MMMM dd, yyyy}" -f $startDate ) + " to " + ("{0:MMMM dd, yyyy}" -f $endDate) + '</td></tr>'
+$html += '<tr><td class="placeholder" colspan="3"></td></tr>'
 $html += '</table>'
 
 #==============================================
@@ -452,17 +419,17 @@ if ($reportLicenseAssigned) {
     $license.Yammer = ($raw | Where-Object { $_."Has Yammer License" -eq $true }).count
     $license.Teams = ($raw | Where-Object { $_."Has Teams License" -eq $true }).count
 
-    $html += '<hr><table id="section"><tr><th>Users and Assigned Licenses</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $office365IconFile + '"></th><th class="section">Users and Assigned Licenses</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Total Users</th><td>' + ("{0:N0}" -f $license.TotalUsers) + '</td></tr>'
     $html += '<tr><th>Licensed Users</th><td>' + ("{0:N0}" -f $license.TotalUsersLicensed) + '</td></tr>'
     $html += '<tr><th>Unlicensed Users</th><td>' + ("{0:N0}" -f $license.TotalUsersUnlicensed) + '</td></tr>'
     $html += '<tr><th>Exchange</th><td>' + ("{0:N0}" -f $license.Exchange) + '</td></tr>'
     $html += '<tr><th>Sharepoint</th><td>' + ("{0:N0}" -f $license.Sharepoint) + '</td></tr>'
     $html += '<tr><th>OneDrive</th><td>' + ("{0:N0}" -f $license.OneDrive) + '</td></tr>'
-    $html += '<tr><th>SkypeForBusiness</th><td>' + ("{0:N0}" -f $license.SkypeForBusiness) + '</td></tr>'
+    $html += '<tr><th>Skype for Business</th><td>' + ("{0:N0}" -f $license.SkypeForBusiness) + '</td></tr>'
     $html += '<tr><th>Yammer</th><td>' + ("{0:N0}" -f $license.Yammer) + '</td></tr>'
     $html += '<tr><th>Teams</th><td>' + ("{0:N0}" -f $license.Teams) + '</td></tr>'
+    $html += '<tr><td class="placeholder"> </td></tr>'
     $html += '</table>'
 
     if ($saveRawData) {
@@ -497,17 +464,16 @@ if ($reportMs365ActiveUsers) {
     $raw.YammerinActive = $result."yammer inActive"
     $raw.TeamsinActive = $result."teams inActive"
 
-    $html += '<hr><table id="section"><tr><th>Office 365 Active Users</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $office365IconFile + '"></th><th class="section">Active Users</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Service</th><th>Active</th><th>Inactive</th></tr>'
     $html += '<tr><th>Office 365</th><td>' + ("{0:N0}" -f [int]$raw.Office365Active) + '</td><td>' + ("{0:N0}" -f [int]$raw.Office365inActive) + '</td></tr>'
     $html += '<tr><th>Exchange</th><td>' + ("{0:N0}" -f [int]$raw.ExchangeActive) + '</td><td>' + ("{0:N0}" -f [int]$raw.ExchangeinActive) + '</td></tr>'
     $html += '<tr><th>OneDrive</th><td>' + ("{0:N0}" -f [int]$raw.OneDriveActive) + '</td><td>' + ("{0:N0}" -f [int]$raw.OneDriveinActive) + '</td></tr>'
     $html += '<tr><th>Sharepoint</th><td>' + ("{0:N0}" -f [int]$raw.SharepointActive) + '</td><td>' + ("{0:N0}" -f [int]$raw.SharepointinActive) + '</td></tr>'
-    $html += '<tr><th>SkypeForBusiness</th><td>' + ("{0:N0}" -f [int]$raw.SkypeForBusinessActive) + '</td><td>' + ("{0:N0}" -f $raw.SkypeForBusinessinActive) + '</td></tr>'
+    $html += '<tr><th>Skype for Business</th><td>' + ("{0:N0}" -f [int]$raw.SkypeForBusinessActive) + '</td><td>' + ("{0:N0}" -f $raw.SkypeForBusinessinActive) + '</td></tr>'
     $html += '<tr><th>Yammer</th><td>' + ("{0:N0}" -f [int]$raw.YammerActive) + '</td><td>' + ("{0:N0}" -f [int]$raw.YammerinActive) + '</td></tr>'
     $html += '<tr><th>Teams</th><td>' + ("{0:N0}" -f [int]$raw.TeamsActive) + '</td><td>' + ("{0:N0}" -f [int]$raw.TeamsinActive) + '</td></tr>'
-
+    $html += '<tr><td class="placeholder"> </td></tr>'
     $html += '</table>'
 
     if ($saveRawData) {
@@ -525,8 +491,7 @@ if ($reportMs365ActivationUsers) {
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActivationsUserCounts"
     $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
-    $html += '<hr><table id="section"><tr><th>Office 365 Activations Users</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $office365IconFile + '"></th><th class="section">Product Activations</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Product Type</th><th>Assigned</th><th>Activated</th><th>Shared Computer Activation</th></tr>'
 
     foreach ($detail in $result) {
@@ -536,7 +501,7 @@ if ($reportMs365ActivationUsers) {
         <td>' + ("{0:N0}" -f [int]$detail."shared Computer Activation") + '</td>
         </tr>'
     }
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $result | Export-Csv "$($reportFolder)\raw_Office365ActivationsUserCounts.csv" -NoTypeInformation
@@ -606,17 +571,15 @@ if ($reportMailboxUsageAndProvisioning) {
     $exchangeMailboxStatus.CreatedMailbox = ($mailboxUsageAndProvisioningData | Where-Object { $_.CreatedDate -ge $today.AddDays(-$dPeriod) }).count
     $exchangeMailboxStatus.DeletedMailbox = $deletedMailbox.count
 
-    $html += '<hr><table id="section"><tr><th>Exchange Mailbox Status</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mailbox Status</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Active Mailbox</th><td>' + ("{0:N0}" -f $exchangeMailboxStatus.ActiveMailbox) + '</td></tr>'
     $html += '<tr><th>Inactive Mailbox</th><td>' + ("{0:N0}" -f $exchangeMailboxStatus.InactiveMailbox) + '</td></tr>'
     $html += '</table>'
 
-    $html += '<hr><table id="section"><tr><th>Exchange Mailbox Provisioning</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mailbox Provisioning</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Created Mailbox</th><td>' + ("{0:N0}" -f $exchangeMailboxStatus.CreatedMailbox) + '</td></tr>'
     $html += '<tr><th>Deleted Mailbox</th><td>' + ("{0:N0}" -f $exchangeMailboxStatus.deletedMailbox) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $result | Export-Csv "$($reportFolder)\raw_getMailboxUsageDetail.csv" -NoTypeInformation
@@ -642,15 +605,14 @@ if ($reportMailboxUsageAndProvisioning) {
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getMailboxUsageStorage(period='D$($dPeriod)')"
     $exoStorage = ((Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv)
 
-    $html += '<hr><table id="section"><tr><th>Exchange Mailbox Storage and Quota</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mailbox Storage</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Storage Used (TB)</th><td>' + ("{0:N2}" -f (($exoStorage[0].'Storage Used (Byte)') / 1TB)) + '</td></tr>'
     $html += '<tr><th>Below 25% Used</th><td>' + ("{0:N0}" -f $quota.Below25Percent) + '</td></tr>'
     $html += '<tr><th>Under Limit</th><td>' + ("{0:N0}" -f $quota.underLimit) + '</td></tr>'
     $html += '<tr><th>Warning Issued</th><td>' + ("{0:N0}" -f $quota.WarningIssued) + '</td></tr>'
     $html += '<tr><th>Send Prohibited</th><td>' + ("{0:N0}" -f $quota.SendProhibited) + '</td></tr>'
     $html += '<tr><th>Send/Receive Prohibited</th><td>' + ("{0:N0}" -f $quota.SendReceiveProhibited) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $raw | Export-Csv "$($reportFolder)\raw_MailboxUsageQuotaStatusMailboxCounts.csv" -NoTypeInformation
@@ -664,8 +626,7 @@ if ($reportEmailAppUsage) {
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getEmailAppUsageAppsUserCounts(period='D$($dPeriod)')"
     $raw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
-    $html += '<hr><table id="section"><tr><th>Exchange Mail App Usage</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Email Apps Usage</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Mail for Mac</th><td>' + ("{0:N0}" -f [int]$raw."Mail for Mac") + '</td></tr>'
     $html += '<tr><th>Outlook for Mac</th><td>' + ("{0:N0}" -f [int]$raw."Outlook for Mac") + '</td></tr>'
     $html += '<tr><th>Outlook for Windows</th><td>' + ("{0:N0}" -f [int]$raw."Outlook for Windows") + '</td></tr>'
@@ -675,7 +636,7 @@ if ($reportEmailAppUsage) {
     $html += '<tr><th>POP3 App</th><td>' + ("{0:N0}" -f [int]$raw."POP3 App") + '</td></tr>'
     $html += '<tr><th>IMAP4 App</th><td>' + ("{0:N0}" -f [int]$raw."IMAP4 App") + '</td></tr>'
     $html += '<tr><th>SMTP App</th><td>' + ("{0:N0}" -f [int]$raw."SMTP App") + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $raw | Export-Csv "$($reportFolder)\raw_exchangeMailAppUsage.csv" -NoTypeInformation
@@ -712,16 +673,15 @@ if ($reportOffice365GroupsProvisioning) {
     }
 
     $o365Groups = "" | Select-Object LiveGroups, CreatedGroups, DeletedGroups
-    $o365Groups.LiveGroups = $liveGroups.count
-    $o365Groups.CreatedGroups = ($liveGroups | Where-Object { ([datetime]$_.createdDateTime) -ge $startDate }).Count
-    $o365Groups.DeletedGroups = ($deletedGroups | Where-Object { ([datetime]$_.deletedDateTime) -ge $startDate }).Count
+    [int]$o365Groups.LiveGroups = $liveGroups.count
+    [int]$o365Groups.CreatedGroups = ($liveGroups | Where-Object { ([datetime]$_.createdDateTime) -ge $startDate }).Count
+    [int]$o365Groups.DeletedGroups = ($deletedGroups | Where-Object { ([datetime]$_.deletedDateTime) -ge $startDate }).Count
 
-    $html += '<hr><table id="section"><tr><th>Microsoft 365 Groups</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Microsoft 365 Groups</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Current Groups</th><td>' + ("{0:N0}" -f $o365Groups.LiveGroups) + '</td></tr>'
     $html += '<tr><th>Created Groups</th><td>' + ("{0:N0}" -f $o365Groups.CreatedGroups) + '</td></tr>'
     $html += '<tr><th>Deleted Groups</th><td>' + ("{0:N0}" -f $o365Groups.DeletedGroups) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $liveGroups | Export-Csv "$($reportFolder)\raw_exchangeOffice365LiveGroups.csv" -NoTypeInformation
@@ -743,29 +703,27 @@ if ($reportMailTraffic) {
     $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
 
     $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
-    $mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Spam = ($mailTrafficData | Where-Object { 
-        $_.EventType -eq "SpamIPBlock" -or 
-        $_.EventType -eq "SpamDBEBFilter" -or 
-        $_.EventType -eq "SpamEnvelopeBlock" -or 
-        $_.EventType -eq "SpamContentFiltered"
-    } | Measure-Object MessageCount -Sum).Sum
-    $mailTraffic.Malware = ($mailTrafficData | Where-Object { 
-        $_.EventType -eq "Malware" 
-    } | Measure-Object MessageCount -Sum).Sum
+    [int]$mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
+    [int]$mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
+    [int]$mailTraffic.Spam = ($mailTrafficData | Where-Object {
+            $_.EventType -eq "SpamIPBlock" -or
+            $_.EventType -eq "SpamDBEBFilter" -or
+            $_.EventType -eq "SpamEnvelopeBlock" -or
+            $_.EventType -eq "SpamContentFiltered"
+        } | Measure-Object MessageCount -Sum).Sum
+    [int]$mailTraffic.Malware = ($mailTrafficData | Where-Object {
+            $_.EventType -eq "Malware"
+        } | Measure-Object MessageCount -Sum).Sum
 
-    $html += '<hr><table id="section"><tr><th>Mail Traffic</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mail Traffic</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Outbound</th><td>' + ("{0:N0}" -f $mailTraffic.Outbound) + '</td></tr>'
     $html += '<tr><th>Inbound</th><td>' + ("{0:N0}" -f $mailTraffic.inbound) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
-    $html += '<hr><table id="section"><tr><th>Malware and Spam Detection</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Malware and Spam</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Spam</th><td>' + ("{0:N0}" -f $mailTraffic.Spam) + '</td></tr>'
     $html += '<tr><th>Malware</th><td>' + ("{0:N0}" -f $mailTraffic.Malware) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $mailTrafficData | Export-Csv "$($reportFolder)\raw_exchangeMailTraffic.csv" -NoTypeInformation
@@ -783,12 +741,11 @@ if ($reportATPDetections) {
     $atpSafeLinks = $atpTrafficReport | Where-Object { $_.EventType -eq 'TotalSafeLinkCount' }
     Write-Output "$(Get-Date) :      --> Getting ATP SafeAttachments blocked message count"
     $atpSafeAttachments = $atpTrafficReport | Where-Object { $_.EventType -eq 'TotalSafeAttachmentCount' }
-    
-    $html += '<hr><table id="section"><tr><th>ATP Mail Detection</th></tr></table><hr>'
-    $html += '<table id="data">'
+
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">ATP Email Detection</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Blocked by ATP Safe Links</th><td>' + ("{0:N0}" -f [int]$atpSafeLinks.MessageCount) + '</td></tr>'
     $html += '<tr><th>Blocked by ATP Safe Attachments</th><td>' + ("{0:N0}" -f [int]$atpSafeAttachments.MessageCount) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $atpTrafficReport | Export-Csv "$($reportFolder)\raw_exchangeAtpTrafficReport.csv" -NoTypeInformation
@@ -824,49 +781,44 @@ if ($reportTopMailTraffic) {
     $top10Malware = Get-MailTrafficSummaryReport -StartDate $startDate -EndDate $endDate -Category TopMalware | Select-Object -First 10 -Property C1, C2
 
     # Top 10 mail sender
-    $html += '<hr><table id="section"><tr><th>Top 10 Mail Senders</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Top 10 Email Sender</th></tr></table><table id="mainTable">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($mailSender in $top10MailSender) {
         $html += '<tr><td>' + $mailSender.C1 + '</td><td>' + ("{0:N0}" -f [int]$mailSender.C2) + '</td></tr>'
     }
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Top 10 mail recipients
-    $html += '<hr><table id="section"><tr><th>Top 10 Mail Recipients</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Top 10 Email Recipients</th></tr></table><table id="mainTable">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($mailRecipient in $top10MailRecipient) {
         $html += '<tr><td>' + $mailRecipient.C1 + '</td><td>' + ("{0:N0}" -f [int]$mailRecipient.C2) + '</td></tr>'
     }
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Top 10 Spam Recipients
-    $html += '<hr><table id="section"><tr><th>Top 10 Spam Recipients</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Top 10 Spam Recipients</th></tr></table><table id="mainTable">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($spamRecipient in $top10SpamRecipient) {
         $html += '<tr><td>' + $spamRecipient.C1 + '</td><td>' + ("{0:N0}" -f [int]$spamRecipient.C2) + '</td></tr>'
     }
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Top 10 Malware Recipients
-    $html += '<hr><table id="section"><tr><th>Top 10 Malware Recipients</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Top 10 Malware Recipients</th></tr></table><table id="mainTable">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($malwareRecipient in $top10MalwareRecipient) {
         $html += '<tr><td>' + $malwareRecipient.C1 + '</td><td>' + ("{0:N0}" -f [int]$malwareRecipient.C2) + '</td></tr>'
     }
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Top 10 Malware
-    $html += '<hr><table id="section"><tr><th>Top 10 Malware</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Top 10 Malware</th></tr></table><table id="mainTable">'
     $html += '<tr><th>User</th><th>Message Count</th></tr>'
     foreach ($malware in $top10Malware) {
         $html += '<tr><td>' + $malware.C1 + '</td><td>' + ("{0:N0}" -f [int]$malware.C2) + '</td></tr>'
     }
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $top10SpamRecipient | Export-Csv "$($reportFolder)\raw_top10SpamRecipient.csv" -NoTypeInformation
@@ -900,13 +852,12 @@ if ($reportSPO) {
     $spoStorage | Add-Member -MemberType ScriptProperty -Name UsedTB -Value { "{0:N2}" -f ($this."Storage Used (Byte)" / 1tb) }
     $spoStorage = $spoStorage | Sort-Object ReportDate | Select-Object -Last 1
 
-    $html += '<hr><table id="section"><tr><th>SharePoint Site and Storage Usage</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $sharepointIconFile + '"></th><th class="section">Sharepoint Sites and Storage</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Storage Used (TB)</th><td>' + ("{0:N2}" -f [decimal]$spoStorage.UsedTB) + '</td></tr>'
     $html += '<tr><th>Total Sites</th><td>' + ("{0:N0}" -f [int]$spoSites.Total) + '</td></tr>'
     $html += '<tr><th>Active Sites</th><td>' + ("{0:N0}" -f [int]$sposites.Active) + '</td></tr>'
     $html += '<tr><th>InActive Sites</th><td>' + ("{0:N0}" -f [int]$sposites.inactive) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $raw | Export-Csv "$($reportFolder)\raw_sharePointSiteUsageDetail.csv" -NoTypeInformation
@@ -936,13 +887,12 @@ if ($reportOneDrive) {
     $oneDriveStorage | Add-Member -MemberType ScriptProperty -Name UsedTB -Value { "{0:N2}" -f ($this."Storage Used (Byte)" / 1tb) }
     $oneDriveStorage = $oneDriveStorage | Sort-Object ReportDate | Select-Object -Last 1
 
-    $html += '<hr><table id="section"><tr><th>OneDrive Site Count and Storage</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $onedriveIconFile + '"></th><th class="section">OneDrive Sites and Storage</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Storage Used (TB)</th><td>' + ("{0:N2}" -f [decimal]$oneDriveStorage.UsedTB) + '</td></tr>'
     $html += '<tr><th>Total Sites</th><td>' + ("{0:N0}" -f [int]$oneDriveSites.Total) + '</td></tr>'
     $html += '<tr><th>Active Sites</th><td>' + ("{0:N0}" -f [int]$oneDriveSites.Active) + '</td></tr>'
     $html += '<tr><th>InActive Sites</th><td>' + ("{0:N0}" -f [int]$oneDriveSites.inactive) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $getOneDriveUsageAccountDetail | Export-Csv "$($reportFolder)\raw_oneDriveUsageAccountDetail.csv" -NoTypeInformation
@@ -985,10 +935,10 @@ if ($reportSkypeForBusiness) {
 
     # Assemble object
     $SfbMinutes = "" | Select-Object Organized, Participated, PeerToPeer, Total
-    $SfbMinutes.Organized = ($sfb1 | Measure-Object "Audio/Video" -Sum).sum
-    $SfbMinutes.Participated = ($sfb2 | Measure-Object "Audio/Video" -Sum).sum
-    $SfbMinutes.PeerToPeer = (($sfb3 | Measure-Object "Audio" -Sum).sum + ($sfb3 | Measure-Object "Video" -Sum).sum)
-    $SfbMinutes.Total = $SfbMinutes.Organized + $SfbMinutes.Participated + $SfbMinutes.PeerToPeer
+    [int]$SfbMinutes.Organized = ($sfb1 | Measure-Object "Audio/Video" -Sum).sum
+    [int]$SfbMinutes.Participated = ($sfb2 | Measure-Object "Audio/Video" -Sum).sum
+    [int]$SfbMinutes.PeerToPeer = (($sfb3 | Measure-Object "Audio" -Sum).sum + ($sfb3 | Measure-Object "Video" -Sum).sum)
+    [int]$SfbMinutes.Total = $SfbMinutes.Organized + $SfbMinutes.Participated + $SfbMinutes.PeerToPeer
 
     # Active user, conference and p2p sessions
     # Active User Count
@@ -1026,17 +976,16 @@ if ($reportSkypeForBusiness) {
     $peerTOpeerCount = ($peerTOpeerCount | Measure-Object Sum -Sum).Sum
 
     $sfbCount = "" | Select-Object ActiveUser, Conference, PeerToPeer
-    $sfbCount.ActiveUser = $activeUserCount
-    $sfbCount.Conference = $conferenceCount
-    $sfbCount.PeerToPeer = $peerTOpeerCount
+    [int]$sfbCount.ActiveUser = $activeUserCount
+    [int]$sfbCount.Conference = $conferenceCount
+    [int]$sfbCount.PeerToPeer = $peerTOpeerCount
 
-    $html += '<hr><table id="section"><tr><th>Skype For Business Activities and Usage</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $skypeIconFile + '"></th><th class="section">Skype for Business Activity</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Audio & Video Minutes</th><td>' + ("{0:N0}" -f $sfbMinutes.Total) + '</td></tr>'
     $html += '<tr><th>Active Users</th><td>' + ("{0:N0}" -f $sfbCount.ActiveUser) + '</td></tr>'
     $html += '<tr><th>Conferences</th><td>' + ("{0:N0}" -f $sfbCount.Conference) + '</td></tr>'
     $html += '<tr><th>Peer-To-Peer Sessions</th><td>' + ("{0:N0}" -f $sfbCount.PeerToPeer) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Device usage distribution
     Write-Output "$(Get-Date) :      --> Getting SfB device usage distribution count"
@@ -1045,14 +994,13 @@ if ($reportSkypeForBusiness) {
     if ($saveRawData) {
         $sfbDevices | Export-Csv "$($reportFolder)\raw_SkypeForBusinessDeviceUsageDistributionUserCounts.csv" -NoTypeInformation
     }
-    $html += '<hr><table id="section"><tr><th>Skype For Business Device Usage</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $skypeIconFile + '"></th><th class="section">Skype for Business Devices</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Windows</th><td>' + ("{0:N0}" -f [int]$sfbDevices.Windows) + '</td></tr>'
     $html += '<tr><th>Windows Phone</th><td>' + ("{0:N0}" -f [int]$sfbDevices."Windows Phone") + '</td></tr>'
     $html += '<tr><th>Android Phone</th><td>' + ("{0:N0}" -f [int]$sfbDevices."Android Phone") + '</td></tr>'
     $html += '<tr><th>iPhone</th><td>' + ("{0:N0}" -f [int]$sfbDevices.iPhone) + '</td></tr>'
     $html += '<tr><th>iPad</th><td>' + ("{0:N0}" -f [int]$sfbDevices.iPad) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 }
 
 #==============================================
@@ -1072,25 +1020,22 @@ if ($reportTeams) {
     $TeamsDeviceUsageDistributionUserCounts = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
     # Teams Users
-    $html += '<hr><table id="section"><tr><th>Teams Users</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $teamsIconFile + '"></th><th class="section">Teams Users</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Teams Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' }).count) + '</td></tr>'
     $html += '<tr><th>Active Teams Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' -and $_.LastActivityDate -ge $startDate }).count) + '</td></tr>'
     $html += '<tr><th>Inctive Teams Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'Is Licensed' -eq 'Yes' -and $_.LastActivityDate -lt $startDate }).count) + '</td></tr>'
     $html += '<tr><th>Guest Users</th><td>' + ("{0:N0}" -f ($TeamsUserActivityUserDetail | Where-Object { $_.'User Principal Name' -match '#EXT#' }).count) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Teams User Activity
-    $html += '<hr><table id="section"><tr><th>Teams User Activity</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $teamsIconFile + '"></th><th class="section">Teams User Activity</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Total 1:1 Calls</th><td>' + ("{0:N0}" -f ($TeamsUserActivityCounts.Calls | Measure-Object -Sum).Sum) + '</td></tr>'
     $html += '<tr><th>Total Team Chat Messages</th><td>' + ("{0:N0}" -f ($TeamsUserActivityCounts.'Team Chat Messages' | Measure-Object -Sum).Sum) + '</td></tr>'
     $html += '<tr><th>Total Private Chat Messages</th><td>' + ("{0:N0}" -f ($TeamsUserActivityCounts.'Private Chat Messages' | Measure-Object -Sum).Sum) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     # Teams Device Usage
-    $html += '<hr><table id="section"><tr><th>Teams Device Usage</th></tr></table><hr>'
-    $html += '<table id="data">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $teamsIconFile + '"></th><th class="section">Teams Devices</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Windows</th><td>' + ("{0:N0}" -f [int]($TeamsDeviceUsageDistributionUserCounts.Windows)) + '</td></tr>'
     $html += '<tr><th>Mac</th><td>' + ("{0:N0}" -f [int]($TeamsDeviceUsageDistributionUserCounts.Mac)) + '</td></tr>'
     $html += '<tr><th>Web</th><td>' + ("{0:N0}" -f [int]($TeamsDeviceUsageDistributionUserCounts.Web)) + '</td></tr>'
@@ -1099,7 +1044,7 @@ if ($reportTeams) {
     $html += '<tr><th>Windows Phone</th><td>' + ("{0:N0}" -f [int]($TeamsDeviceUsageDistributionUserCounts.'Windows Phone')) + '</td></tr>'
     $html += '<tr><th>Chrome OS</th><td>' + ("{0:N0}" -f [int]($TeamsDeviceUsageDistributionUserCounts.'Chrome OS')) + '</td></tr>'
     $html += '<tr><th>Linux</th><td>' + ("{0:N0}" -f [int]($TeamsDeviceUsageDistributionUserCounts.Linux)) + '</td></tr>'
-    $html += '</table>'
+    $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
         $TeamsUserActivityUserDetail | Export-Csv "$($reportFolder)\raw_TeamsUserActivityUserDetail.csv" -NoTypeInformation
@@ -1108,22 +1053,30 @@ if ($reportTeams) {
     }
 }
 
-# Build the HTML report
-$html += '<p><table id="section">'
-$html += '<tr><th>----END of REPORT----</th></tr></table></p>'
-$html += '<p><font size="2" face="Tahoma"><u>Report Paremeters</u><br />'
-$html += '<b>[ENABLED REPORTS]</b><br />'
-$html += ($enabledReportList).Split(",") -join "<br />"
-$html += '<br /><br />'
-$html += '<b>[REPORT DETAILS]</b><br />'
-$html += 'Report Period: ' + $dPeriod + ' days<br />'
-$html += 'Generated from Computer: ' + ($env:COMPUTERNAME) + '<br />'
-$html += 'Script File: ' + $MyInvocation.MyCommand.Definition + '<br />'
-$html += 'Config File: ' + $Config + '<br />'
-$html += '</p><p>'
-$html += '<a href="' + ($scriptInfo.PROJECTURI) + '">Ms365UsageReport v.' + ($scriptInfo.Version) + '</a></p>'
+$html += '<table id="mainTable"><tr><th class="section"><img src="' + $settingsIconFile + '"></th><th class="section">Report Parameters</th></tr></table><table id="mainTable">'
+
+$html += '<tr><th>Report Period</th><td>' + $dPeriod + ' days</td></tr>'
+$html += '<tr><th>Enabled Reports</th><td>' + ($enabledReport -join ', ') + '</td></tr>'
+$html += '<tr><th>Source</th><td>' + $env:COMPUTERNAME + '</td></tr>'
+$html += '<tr><th>Script File</th><td>' + $MyInvocation.MyCommand.Definition + '</td></tr>'
+$html += '<tr><th>Config File</th><td>' + $Config + '</td></tr>'
+$html += '<tr><td colspan="2"><a href="' + ($scriptInfo.PROJECTURI) + '">Ms365UsageReport v.' + ($scriptInfo.Version) + '</td></tr>'
+$html += '</table>'
 $html += '</body></html>'
 $html | Out-File "$($reportFolder)\report.html"
+$html = $html -join "`n"
+# $html = $html -replace "$($office365IconFile)","exchangeIconFile"
+if ($showLogo) {
+    $html = $html.Replace($logoFile, "cid:logoFile")
+}
+$html = $html.Replace($office365IconFile, "cid:office365IconFile")
+$html = $html.Replace("$($exchangeIconFile)", "exchangeIconFile")
+$html = $html.Replace("$($sharepointIconFile)", "cid:sharepointIconFile")
+$html = $html.Replace("$($onedriveIconFile)", "cid:onedriveIconFile")
+$html = $html.Replace("$($skypeIconFile)", "cid:skypeIconFile")
+$html = $html.Replace("$($teamsIconFile)", "cid:teamsIconFile")
+$html = $html.Replace("$($settingsIconFile)", "cid:settingsIconFile")
+
 
 Write-Output "$(Get-Date) : Reports saved to $($reportFolder)"
 
@@ -1140,11 +1093,76 @@ if ($sendEmail) {
                     contentType = "HTML"
                     content     = $html
                 }
-
                 internetMessageHeaders = @(
                     @{
                         name  = "X-Mailer"
                         value = "Ms365UsageReport by June Castillote"
+                    }
+                )
+                attachments            = @(
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "logoFile"
+                        "name"         = "logoFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $logoFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "office365IconFile"
+                        "name"         = "office365IconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $office365IconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "exchangeIconFile"
+                        "name"         = "exchangeIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $exchangeIconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "sharepointIconFile"
+                        "name"         = "sharepointIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $sharepointIconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "onedriveIconFile"
+                        "name"         = "onedriveIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $onedriveIconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "skypeIconFile"
+                        "name"         = "skypeIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $skypeIconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "teamsIconFile"
+                        "name"         = "teamsIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $teamsIconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "settingsIconFile"
+                        "name"         = "settingsIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $settingsIconFile -Raw -Encoding byte)))"
                     }
                 )
             }
@@ -1199,16 +1217,13 @@ if ($sendEmail) {
         if ($transLog) {
             LogEnd
             [string]$base64_logFile = [convert]::ToBase64String((Get-Content $logFile -Encoding byte))
-            $mailBody.message += @{
-                attachments = @(
-                    @{
-                        "@odata.type"  = "#microsoft.graph.fileAttachment"
-                        "name"         = "transcript.txt"
-                        "contentBytes" = $base64_logFile
-                    }
-                )
+            $mailBody.message.attachments += @{
+                "@odata.type"  = "#microsoft.graph.fileAttachment"
+                "name"         = "transcript.txt"
+                "contentBytes" = $base64_logFile
             }
         }
+
         $mailBody = $mailBody | ConvertTo-Json -Depth 4
         $ServicePoint = [System.Net.ServicePointManager]::FindServicePoint('https://graph.microsoft.com')
         $mailApiUri = "https://graph.microsoft.com/$graphApiVersion/users/$($fromAddress)/sendmail"
