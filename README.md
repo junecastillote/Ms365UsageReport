@@ -6,6 +6,8 @@
 
 [![GitHub license](https://img.shields.io/github/license/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/blob/main/LICENSE)
 
+> Important!!! - If you're coming from versions below 1.2.5 of this script, you'll need to update your config file from JSON to YAML format. The YAML template is included in this version.
+
 - [Overview](#overview)
 - [What's New in Version v1.2.5](#whats-new-in-version-v125)
 - [Requirements](#requirements)
@@ -214,10 +216,10 @@ developer:
 | MAIL          |                                                              |
 | ------------- | ------------------------------------------------------------ |
 | `sendEmail`   | Turn ON or OFF the sending of the HTML report by email. The HTML report file is saved to *<script_root>\reports\<organization name>\report.html*<br><br>`true` or `false` |
-| `fromAddress` | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license.<br>Example:<br>`"fromAddress": "sender@domain.com"` |
-| `toAddress`   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`"toAddress": "recipient1@domain.com,recipient2@domain.com"` |
-| `ccAddress`   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example: <br>"ccAddress": "recipient1@domain.com,recipient2@domain.com"` |
-| `bccAddress`  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`"bccAddress": "recipient1@domain.com,recipient2@domain.com"` |
+| `fromAddress` | This is the email address used for sending the HTML report. This must be a valid mailbox and email address. Using a shared mailbox as the sender is recommend because it does not required an Exchange Online license.<br>Example:<br>`fromAddress: sender@domain.com` |
+| `toAddress`   | The recipient(s) email address that will appear in the TO address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`toAddress: recipient1@domain.com,recipient2@domain.com` |
+| `ccAddress`   | The recipient(s) email address that will appear in the CC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example: <br>ccAddress: recipient1@domain.com,recipient2@domain.com` |
+| `bccAddress`  | The recipient(s) email address that will appear in the BCC address. Multiple entries are accepted, but must be delimited by a comma ",".<br>Example:<br>`bccAddress: recipient1@domain.com,recipient2@domain.com` |
 
 <hr>
 
