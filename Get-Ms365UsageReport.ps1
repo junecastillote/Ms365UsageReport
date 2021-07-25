@@ -115,7 +115,10 @@ $scriptInfo = Test-ScriptFileInfo -Path $MyInvocation.MyCommand.Definition
 $styleFolder = "$($script_root)\style"
 $resourceFolder = "$($script_root)\resource"
 
-$logoFile = "$($resourceFolder)\logo.png"
+if ($showLogo ) {
+    $logoFile = "$($resourceFolder)\logo.png"
+}
+
 $office365IconFile = "$($resourceFolder)\office365.png"
 $exchangeIconFile = "$($resourceFolder)\exchange.png"
 $sharepointIconFile = "$($resourceFolder)\sharepoint.png"
@@ -154,6 +157,9 @@ $transLog = $options.parameters.transLog
 Write-Output "$(Get-Date) : Using configuration from $($Config)"
 
 $enabledReport = @()
+
+# Show or Hide Logo
+$showLogo = $options.parameters.showLogo
 
 # Select reports from config
 # Parameters
@@ -388,7 +394,9 @@ $html += (Get-Content $styleFolder\style.css -Raw)
 $html += '</style>'
 $html += '</head><body>'
 $html += '<table id="mainTable">'
-$html += '<tr><td class="placeholder"><img src="' + $logoFile + '"></td>'
+if ($showLogo) {
+    $html += '<tr><td class="placeholder"><img src="' + $logoFile + '"></td>'
+}
 $html += '<td class="vl"></td>'
 $html += '<td class="title">' + $organizationName + '<br>' + 'Microsoft 365 Usage Report' + '<br>' + ("{0:MMMM dd, yyyy}" -f $startDate ) + " to " + ("{0:MMMM dd, yyyy}" -f $endDate) + '</td></tr>'
 $html += '<tr><td class="placeholder" colspan="3"></td></tr>'
@@ -1061,7 +1069,9 @@ $html += '</body></html>'
 $html | Out-File "$($reportFolder)\report.html"
 $html = $html -join "`n"
 # $html = $html -replace "$($office365IconFile)","exchangeIconFile"
-$html = $html.Replace($logoFile, "cid:logoFile")
+if ($showLogo) {
+    $html = $html.Replace($logoFile, "cid:logoFile")
+}
 $html = $html.Replace($office365IconFile, "cid:office365IconFile")
 $html = $html.Replace("$($exchangeIconFile)", "exchangeIconFile")
 $html = $html.Replace("$($sharepointIconFile)", "cid:sharepointIconFile")
@@ -1093,14 +1103,6 @@ if ($sendEmail) {
                     }
                 )
                 attachments            = @(
-                    @{
-                        "@odata.type"  = "#microsoft.graph.fileAttachment"
-                        "contentID"    = "logoFile"
-                        "name"         = "logoFile"
-                        "IsInline"     = $true
-                        "contentType"  = "image/png"
-                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $logoFile -Raw -Encoding byte)))"
-                    }
                     @{
                         "@odata.type"  = "#microsoft.graph.fileAttachment"
                         "contentID"    = "office365IconFile"
@@ -1216,6 +1218,19 @@ if ($sendEmail) {
                 "contentBytes" = $base64_logFile
             }
         }
+
+        if ($showLogo) {
+            $mailBody.message.attachments += @{
+                "@odata.type"  = "#microsoft.graph.fileAttachment"
+                "contentID"    = "logoFile"
+                "name"         = "logoFile"
+                "IsInline"     = $true
+                "contentType"  = "image/png"
+                "contentBytes" = "$([convert]::ToBase64String((Get-Content $logoFile -Raw -Encoding byte)))"
+            }
+        }
+
+
         $mailBody = $mailBody | ConvertTo-Json -Depth 4
         $ServicePoint = [System.Net.ServicePointManager]::FindServicePoint('https://graph.microsoft.com')
         $mailApiUri = "https://graph.microsoft.com/$graphApiVersion/users/$($fromAddress)/sendmail"

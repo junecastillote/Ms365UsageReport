@@ -164,6 +164,7 @@ parameters:
   transLog: false
   saveRawData: false
   period: 30
+  showLogo: true
 mail:
   sendEmail: false
   fromAddress: sender@domain.com
@@ -194,22 +195,23 @@ developer:
 | AUTH                               |                                                              |
 | ---------------------------------- | ------------------------------------------------------------ |
 | `tenantName`                       | This is your Microsoft 365 tenant's organization name.<br>Example: `contoso.onmicrosoft.com` |
-| `msGraphAuthType`                  | Determines the Graph API credential type.<br><br>`"msGraphAuthType": "1"` = Use Certificate to authenticate<br>`"msGraphAuthType": "2"` = Use Client Secret to authenticate |
+| `msGraphAuthType`                  | Determines the Graph API credential type.<br><br>`msGraphAuthType: 1` = Use Certificate<br>`msGraphAuthType: 2` = Use Client Secret |
 | `msGraphAppID`                     | This is the registered app's Application ID. (refer to *[Register a New Azure AD App](#register-a-new-azure-ad-app)*). |
 | `msGraphAppKey`                    | This is the registered app's Secret Key. (refer to *[Adding a Client Secret](#option-1-adding-a-client-secret)*). |
 | `msGraphAppCertificateThumbprint`  | This is the registered app's Certificate Thumbprint. (refer to *[Creating and Uploading a Self-Signed Certificate*](#option-2-creating-and-uploading-a-self-signed-certificate)*). |
-| `exchangeAuthType`                 | Determines the Exchange Credential authentication type.<br><br>`"exchangeAuthType": "1"` = Use Certificate<br>`"exchangeAuthType": "2"` = Use encrypted username and password |
-| `exchangeAppID`                    | This is the registered app's Application ID.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `"exchangeAuthType": "1"`<br>If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this. |
-| `exchangeAppCertificateThumbprint` | This is the registered app's Certificate Thumbprint.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `"exchangeAuthType": "1"`<br><br>Make sure that the certificate is in the personal certificate store and uploaded to the registered Exchange app in Azure AD.<br><br>If you're using `"exchangeAuthType": "2"`, you do not need to add a value to this. |
-| `exchangeCredentialFile`           | The file path to the encrypted credential file.<br><br>Refer to: *[Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)*<br><br>When you enter the path in the YAML configuration, make sure to use double-backslash.<br><br>Example:<br>`"exchangeCredentialFile": "C:\\temp\\cred.xml"` |
+| `exchangeAuthType`                 | Determines the Exchange Credential authentication type.<br><br>`exchangeAuthType: 1` = Use Certificate<br>`exchangeAuthType: 2` = Use encrypted username and password |
+| `exchangeAppID`                    | This is the registered app's Application ID.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `exchangeAuthType: 1`<br>If you're using `exchangeAuthType: 2`, you do not need to add a value to this. |
+| `exchangeAppCertificateThumbprint` | This is the registered app's Certificate Thumbprint.<br>Refer to *[Setting Up App-Only Authentication using PowerShell](https://adamtheautomator.com/exchange-online-powershell-mfa/#Setting_Up_AppOnly_Authentication_using_PowerShell)*.<br><br><br>This is only required if you're using If you're using `exchangeAuthType: 1`<br><br>Make sure that the certificate is in the personal certificate store and uploaded to the registered Exchange app in Azure AD.<br><br>If you're using `exchangeAuthType: 2`, you do not need to add a value to this. |
+| `exchangeCredentialFile`           | The file path to the encrypted credential file.<br><br>Refer to: *[Creating an Encrypted Exchange Online Credentials File](#creating-an-encrypted-exchange-online-credentials-file)*<br><br>Example:<br>`exchangeCredentialFile: C:\temp\cred.xml` |
 
 <hr>
 
 | PARAMETERS    |                                                              |
 | ------------- | ------------------------------------------------------------ |
-| `transLog`    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the `<script_root>\transcript` folder. |
-| `saveRawData` | Turn ON or OFF the saving of raw data. Raw data files are saved to the `<script_root>\reports\<organization name>`. |
+| `transLog`    | Turn ON or OFF the transcript logging. When turned on, the transcript will be saved to the `<script_root>\transcript` folder.<br />`true` or `false` |
+| `saveRawData` | Turn ON or OFF the saving of raw data. Raw data files are saved to the `<script_root>\reports\<organization name>`.<br />`true` or `false` |
 | `period`      | The period covered by the report in days. Valid values are: `7`,`30`,`90`,`180`. |
+| `showLogo`    | Show or hide the banner logo on top of the report.<br />`true` or `false` |
 
 <hr>
 
