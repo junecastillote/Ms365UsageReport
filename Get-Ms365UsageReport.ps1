@@ -115,10 +115,7 @@ $scriptInfo = Test-ScriptFileInfo -Path $MyInvocation.MyCommand.Definition
 $styleFolder = "$($script_root)\style"
 $resourceFolder = "$($script_root)\resource"
 
-if ($showLogo ) {
-    $logoFile = "$($resourceFolder)\logo.png"
-}
-
+$logoFile = "$($resourceFolder)\logo.png"
 $office365IconFile = "$($resourceFolder)\office365.png"
 $exchangeIconFile = "$($resourceFolder)\exchange.png"
 $sharepointIconFile = "$($resourceFolder)\sharepoint.png"
@@ -1105,6 +1102,14 @@ if ($sendEmail) {
                 attachments            = @(
                     @{
                         "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "logoFile"
+                        "name"         = "logoFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $logoFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
                         "contentID"    = "office365IconFile"
                         "name"         = "office365IconFile"
                         "IsInline"     = $true
@@ -1218,18 +1223,6 @@ if ($sendEmail) {
                 "contentBytes" = $base64_logFile
             }
         }
-
-        if ($showLogo) {
-            $mailBody.message.attachments += @{
-                "@odata.type"  = "#microsoft.graph.fileAttachment"
-                "contentID"    = "logoFile"
-                "name"         = "logoFile"
-                "IsInline"     = $true
-                "contentType"  = "image/png"
-                "contentBytes" = "$([convert]::ToBase64String((Get-Content $logoFile -Raw -Encoding byte)))"
-            }
-        }
-
 
         $mailBody = $mailBody | ConvertTo-Json -Depth 4
         $ServicePoint = [System.Net.ServicePointManager]::FindServicePoint('https://graph.microsoft.com')
