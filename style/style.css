@@ -1,0 +1,82 @@
+#mainTable {
+    font-family: "Tahoma";
+    width: auto;
+    border-collapse: collapse;
+    color: #7a7a52;
+    table-layout: fixed;
+}
+
+#mainTable td {
+    font-weight: lighter;
+    font-size: 13px;
+    text-align: left;
+}
+
+#mainTable th {
+    font-size: 13px;
+    text-align: left;
+}
+
+#mainTable td, #mainTable th {
+    font-size: 12px;
+    border-bottom: 1px solid #ccc;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+#mainTable td.placeholder {
+    /* font-size: 14px; */
+    border: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 5px;
+    padding-right: 10px;
+}
+
+#mainTable td.title {
+    font-family: "Tahoma";
+    font-size: 20;
+    border: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 5px;
+    padding-right: 10px;
+}
+
+#mainTable th.section {
+    font-family: "Tahoma";
+    font-weight: bold;
+    font-size: 20px;
+    text-align: left;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 2px;
+    padding-right: 10px;
+    color: #000;
+    vertical-align: middle;
+    border-bottom: 2px solid #006280;
+}
+
+#mainTable td.vl {
+    border-left: 6px solid green;
+    border-bottom: none;
+}
+
+#mainTable td.hl {
+    border-top: 2px solid #006280;
+    border-bottom: none;
+}
+
+#settings {
+    font-family: "Tahoma";
+    width: auto;
+    border-collapse: collapse;
+    font-size: 10px;
+    text-align: left;
+}
+
+#settings td, th {
+    color: #7a7a52;
+}
