@@ -7,7 +7,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2.5
+.VERSION 1.2.6
 
 .GUID 0a5697c4-b4d6-470b-a851-50727da79de8
 
@@ -345,6 +345,9 @@ if ($enabledReport -contains 'Exchange') {
                 }
             }
         }
+        elseif ($exchangeAuthType -eq 3){
+            $exchangeAppID = $options.auth.exchangeAppID
+        }
         else {
             Write-Output "$(Get-Date) : [X] The exchangeAuthType value is not valid.`nValid values as 1, 2.`n * 1 = App + Certificate`n2 = Credential"
             LogEnd
@@ -561,9 +564,9 @@ if ($reportMailboxUsageAndProvisioning) {
     # Get deleted mailbox
     Write-Output "$(Get-Date) :      --> Getting list of deleted mailboxes"
     # v1.2.1 - changed back to Get-Mailbox
-    $deletedMailbox = Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" |
+    $deletedMailbox = @(Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" |
     Select-Object UserPrincipalName, WhenSoftDeleted |
-    Sort-Object UserPrincipalName
+    Sort-Object UserPrincipalName)
 
     $exchangeMailboxStatus = "" | Select-Object ActiveMailbox, InActiveMailbox, CreatedMailbox, DeletedMailbox
     $exchangeMailboxStatus.ActiveMailbox = ($mailboxUsageAndProvisioningData | Where-Object { $_.IsInActive -eq $false }).count

@@ -9,7 +9,7 @@
 > Important!!! - If you're coming from versions below 1.2.5 of this script, you'll need to update your config file from JSON to YAML format. The YAML template is included in this version.
 
 - [Overview](#overview)
-- [What's New in Version v1.2.5](#whats-new-in-version-v125)
+- [What's New in Version v1.2.6](#whats-new-in-version-v126)
 - [Requirements](#requirements)
 - [How to Get the Script](#how-to-get-the-script)
   - [Files List](#files-list)
@@ -88,11 +88,9 @@ The reports that can be exported using this script are:
   - Total Private Chat Messages
   - Device Usage Distribution
 
-## What's New in Version v1.2.5
+## What's New in Version v1.2.6
 
-  - Theme update.
-  - Migrated configuration file format from `JSON` to `YAML`. YAML is more human-readable than JSON.
-    - New requirement: `powershell-yaml` module.
+  - Fixed 0 deleted mailbox count display
 
 ## Requirements
 
