@@ -707,7 +707,7 @@ if ($reportMailTraffic) {
         v1.2.8
         * Since Microsoft removed the Get-MailTrafficReport cmdlet, replacing it with Get-MailFlowStatusReport
     #>
-    $mailTrafficData = Get-MailFlowStatusReport -StartDate $startDate -EndDate $endDate
+    $mailTrafficData = Get-MailFlowStatusReport -StartDate $startDate -EndDate $endDate -Direction Inbound,Outbound
 
     [int]$totalMessageCount = ($mailTrafficData | Measure-Object MessageCount -Sum).Sum
     [int]$inboundMessageCount = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
