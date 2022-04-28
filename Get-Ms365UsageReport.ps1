@@ -123,6 +123,7 @@ $onedriveIconFile = "$($resourceFolder)\onedrive.png"
 $skypeIconFile = "$($resourceFolder)\skype.png"
 $teamsIconFile = "$($resourceFolder)\teams.png"
 $settingsIconFile = "$($resourceFolder)\settings.png"
+$defenderIconFile = "$($resourceFolder)\defender.png"
 
 # $headerParams = @{'Authorization' = "Bearer $($GraphApiAccessToken)" }
 
@@ -748,7 +749,7 @@ if ($reportATPDetections) {
     Write-Output "$(Get-Date) :      --> Getting ATP SafeAttachments blocked message count"
     $atpSafeAttachments = $atpTrafficReport | Where-Object { $_.EventType -eq 'TotalSafeAttachmentCount' }
 
-    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">ATP Email Detection</th></tr></table><table id="mainTable">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $defenderIconFile + '"></th><th class="section">ATP Email Detection</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Blocked by ATP Safe Links</th><td>' + ("{0:N0}" -f [int]$atpSafeLinks.MessageCount) + '</td></tr>'
     $html += '<tr><th>Blocked by ATP Safe Attachments</th><td>' + ("{0:N0}" -f [int]$atpSafeAttachments.MessageCount) + '</td></tr>'
     $html += '<tr><td class="placeholder"> </td></tr></table>'
