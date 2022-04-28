@@ -708,6 +708,8 @@ if ($reportMailTraffic) {
         * Since Microsoft removed the Get-MailTrafficReport cmdlet, replacing it with Get-MailFlowStatusReport
     #>
     $mailTrafficData = Get-MailFlowStatusReport -StartDate $startDate -EndDate $endDate
+
+    [int]$totalMessageCount = ($mailTrafficData | Measure-Object MessageCount -Sum).Sum
     [int]$inboundMessageCount = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
     [int]$outboundMessageCount = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" } | Measure-Object MessageCount -Sum).Sum
     [int]$edgeProtectionMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "EdgeBlockSpam" } | Measure-Object MessageCount -Sum).Sum
@@ -718,7 +720,7 @@ if ($reportMailTraffic) {
     [int]$ruleMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "TransportRules" } | Measure-Object MessageCount -Sum).Sum
 
     $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mail Traffic Summary</th></tr></table><table id="mainTable">'
-    $html += '<tr><th>Total email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
+    $html += '<tr><th>Total email</th><td>' + ("{0:N0}" -f $totalMessageCount) + '</td></tr>'
     $html += '<tr><th>Outbound email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
     $html += '<tr><th>Inbound email</th><td>' + ("{0:N0}" -f $outboundMessageCount) + '</td></tr>'
     $html += '<tr><th>Messages where no threats were detected</th><td>' + ("{0:N0}" -f $goodMessageCount) + '</td></tr>'
