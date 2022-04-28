@@ -7,7 +7,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2.6
+.VERSION 1.2.8
 
 .GUID 0a5697c4-b4d6-470b-a851-50727da79de8
 
@@ -703,29 +703,30 @@ if ($reportMailTraffic) {
         * Fixed spam count count. All inbound and outbound spam are now counted.
         * Fixed malware count count. All inbound and outbound spam are now counted.
     #>
-    $mailTrafficData = Get-MailTrafficReport -StartDate $startDate -EndDate $endDate -AggregateBy Summary
+    <#
+        v1.2.8
+        * Since Microsoft removed the Get-MailTrafficReport cmdlet, replacing it with Get-MailFlowStatusReport
+    #>
+    $mailTrafficData = Get-MailFlowStatusReport -StartDate $startDate -EndDate $endDate
+    [int]$inboundMessageCount = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
+    [int]$outboundMessageCount = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" } | Measure-Object MessageCount -Sum).Sum
+    [int]$edgeProtectionMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "EdgeBlockSpam" } | Measure-Object MessageCount -Sum).Sum
+    [int]$malwareMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "EmailMalware" } | Measure-Object MessageCount -Sum).Sum
+    [int]$spamMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "SpamDetections" } | Measure-Object MessageCount -Sum).Sum
+    [int]$phishMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "EmailPhish" } | Measure-Object MessageCount -Sum).Sum
+    [int]$goodMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "GoodMail" } | Measure-Object MessageCount -Sum).Sum
+    [int]$ruleMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "TransportRules" } | Measure-Object MessageCount -Sum).Sum
 
-    $mailTraffic = "" | Select-Object Inbound, Outbound, Malware, Spam
-    [int]$mailTraffic.Inbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
-    [int]$mailTraffic.Outbound = ($mailTrafficData | Where-Object { $_.Direction -eq "Outbound" -and $_.EventType -eq 'GoodMail' } | Measure-Object MessageCount -Sum).Sum
-    [int]$mailTraffic.Spam = ($mailTrafficData | Where-Object {
-            $_.EventType -eq "SpamIPBlock" -or
-            $_.EventType -eq "SpamDBEBFilter" -or
-            $_.EventType -eq "SpamEnvelopeBlock" -or
-            $_.EventType -eq "SpamContentFiltered"
-        } | Measure-Object MessageCount -Sum).Sum
-    [int]$mailTraffic.Malware = ($mailTrafficData | Where-Object {
-            $_.EventType -eq "Malware"
-        } | Measure-Object MessageCount -Sum).Sum
-
-    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mail Traffic</th></tr></table><table id="mainTable">'
-    $html += '<tr><th>Outbound</th><td>' + ("{0:N0}" -f $mailTraffic.Outbound) + '</td></tr>'
-    $html += '<tr><th>Inbound</th><td>' + ("{0:N0}" -f $mailTraffic.inbound) + '</td></tr>'
-    $html += '<tr><td class="placeholder"> </td></tr></table>'
-
-    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Malware and Spam</th></tr></table><table id="mainTable">'
-    $html += '<tr><th>Spam</th><td>' + ("{0:N0}" -f $mailTraffic.Spam) + '</td></tr>'
-    $html += '<tr><th>Malware</th><td>' + ("{0:N0}" -f $mailTraffic.Malware) + '</td></tr>'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mail Traffic Summary</th></tr></table><table id="mainTable">'
+    $html += '<tr><th>Total email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
+    $html += '<tr><th>Outbound email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
+    $html += '<tr><th>Inbound email</th><td>' + ("{0:N0}" -f $outboundMessageCount) + '</td></tr>'
+    $html += '<tr><th>Messages where no threats were detected</th><td>' + ("{0:N0}" -f $goodMessageCount) + '</td></tr>'
+    $html += '<tr><th>Edge filtered</th><td>' + ("{0:N0}" -f $edgeProtectionMessageCount) + '</td></tr>'
+    $html += '<tr><th>Rule messages</th><td>' + ("{0:N0}" -f $ruleMessageCount) + '</td></tr>'
+    $html += '<tr><th>Anti-malware engine, Safe Attachments, rule filtered</th><td>' + ("{0:N0}" -f $malwareMessageCount) + '</td></tr>'
+    $html += '<tr><th>DMARC, impersonation, spoof, phish filtered</th><td>' + ("{0:N0}" -f $phishMessageCount) + '</td></tr>'
+    $html += '<tr><th>Anti-spam filtered</th><td>' + ("{0:N0}" -f $spamMessageCount) + '</td></tr>'
     $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
