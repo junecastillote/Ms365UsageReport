@@ -393,7 +393,7 @@ $html = '<html><head><title>' + $($mailSubject) + '</title>'
 $html += '<style type="text/css">'
 $html += (Get-Content $styleFolder\style.css -Raw)
 $html += '</style>'
-$html += '</head><body style="background-color:white;">'
+$html += '</head><body>'
 $html += '<table id="mainTable">'
 if ($showLogo) {
     $html += '<tr><td class="placeholder"><img src="' + $logoFile + '"></td>'
