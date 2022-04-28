@@ -721,15 +721,18 @@ if ($reportMailTraffic) {
     [int]$ruleMessageCount = ($mailTrafficData | Where-Object { $_.EventType -eq "TransportRules" } | Measure-Object MessageCount -Sum).Sum
 
     $html += '<table id="mainTable"><tr><th class="section"><img src="' + $exchangeIconFile + '"></th><th class="section">Mail Traffic Summary</th></tr></table><table id="mainTable">'
-    $html += '<tr><th>Total email</th><td>' + ("{0:N0}" -f $totalMessageCount) + '</td></tr>'
-    $html += '<tr><th>Outbound email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
-    $html += '<tr><th>Inbound email</th><td>' + ("{0:N0}" -f $outboundMessageCount) + '</td></tr>'
-    $html += '<tr><th>Good mail</th><td>' + ("{0:N0}" -f $goodMessageCount) + '</td></tr>'
-    $html += '<tr><th>Edge block spam</th><td>' + ("{0:N0}" -f $edgeProtectionMessageCount) + '</td></tr>'
-    $html += '<tr><th>Rule messages</th><td>' + ("{0:N0}" -f $ruleMessageCount) + '</td></tr>'
-    $html += '<tr><th>Email malware</th><td>' + ("{0:N0}" -f $malwareMessageCount) + '</td></tr>'
-    $html += '<tr><th>Email phish</th><td>' + ("{0:N0}" -f $phishMessageCount) + '</td></tr>'
-    $html += '<tr><th>Spam detections</th><td>' + ("{0:N0}" -f $spamMessageCount) + '</td></tr>'
+    $html += '<tr><th>Total Email</th><td>' + ("{0:N0}" -f $totalMessageCount) + '</td></tr>'
+    $html += '<tr><th>Outbound Email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
+    $html += '<tr><th>InboundEmail </th><td>' + ("{0:N0}" -f $outboundMessageCount) + '</td></tr>'
+    $html += '<tr><th>Good Email</th><td>' + ("{0:N0}" -f $goodMessageCount) + '</td></tr>'
+    $html += '<tr><th>Edge Block</th><td>' + ("{0:N0}" -f $edgeProtectionMessageCount) + '</td></tr>'
+    $html += '<tr><th>Malware</th><td>' + ("{0:N0}" -f $malwareMessageCount) + '</td></tr>'
+    $html += '<tr><th>Spam</th><td>' + ("{0:N0}" -f $spamMessageCount) + '</td></tr>'
+    $html += '<tr><th>Phising</th><td>' + ("{0:N0}" -f $phishMessageCount) + '</td></tr>'
+    $html += '<tr><th>Transport Rule</th><td>' + ("{0:N0}" -f $ruleMessageCount) + '</td></tr>'
+
+
+
     $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
