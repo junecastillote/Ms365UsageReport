@@ -1078,6 +1078,7 @@ if ($showLogo) {
 }
 $html = $html.Replace($officeIconFile, "cid:officeIconFile")
 $html = $html.Replace("$($exchangeIconFile)", "exchangeIconFile")
+$html = $html.Replace("$($defenderIconFile)", "defenderIconFile")
 $html = $html.Replace("$($sharepointIconFile)", "cid:sharepointIconFile")
 $html = $html.Replace("$($onedriveIconFile)", "cid:onedriveIconFile")
 $html = $html.Replace("$($skypeIconFile)", "cid:skypeIconFile")
@@ -1130,6 +1131,14 @@ if ($sendEmail) {
                         "IsInline"     = $true
                         "contentType"  = "image/png"
                         "contentBytes" = "$([convert]::ToBase64String((Get-Content $exchangeIconFile -Raw -Encoding byte)))"
+                    }
+                    @{
+                        "@odata.type"  = "#microsoft.graph.fileAttachment"
+                        "contentID"    = "defenderIconFile"
+                        "name"         = "defenderIconFile"
+                        "IsInline"     = $true
+                        "contentType"  = "image/png"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $defenderIconFile -Raw -Encoding byte)))"
                     }
                     @{
                         "@odata.type"  = "#microsoft.graph.fileAttachment"
