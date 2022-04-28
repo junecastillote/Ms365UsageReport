@@ -116,7 +116,7 @@ $styleFolder = "$($script_root)\style"
 $resourceFolder = "$($script_root)\resource"
 
 $logoFile = "$($resourceFolder)\logo.png"
-$office365IconFile = "$($resourceFolder)\office365.png"
+$officeIconFile = "$($resourceFolder)\office.png"
 $exchangeIconFile = "$($resourceFolder)\exchange.png"
 $sharepointIconFile = "$($resourceFolder)\sharepoint.png"
 $onedriveIconFile = "$($resourceFolder)\onedrive.png"
@@ -345,7 +345,7 @@ if ($enabledReport -contains 'Exchange') {
                 }
             }
         }
-        elseif ($exchangeAuthType -eq 3){
+        elseif ($exchangeAuthType -eq 3) {
             $exchangeAppID = $options.auth.exchangeAppID
         }
         else {
@@ -422,7 +422,7 @@ if ($reportLicenseAssigned) {
     $license.Yammer = ($raw | Where-Object { $_."Has Yammer License" -eq $true }).count
     $license.Teams = ($raw | Where-Object { $_."Has Teams License" -eq $true }).count
 
-    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $office365IconFile + '"></th><th class="section">Users and Assigned Licenses</th></tr></table><table id="mainTable">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $officeIconFile + '"></th><th class="section">Users and Assigned Licenses</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Total Users</th><td>' + ("{0:N0}" -f $license.TotalUsers) + '</td></tr>'
     $html += '<tr><th>Licensed Users</th><td>' + ("{0:N0}" -f $license.TotalUsersLicensed) + '</td></tr>'
     $html += '<tr><th>Unlicensed Users</th><td>' + ("{0:N0}" -f $license.TotalUsersUnlicensed) + '</td></tr>'
@@ -467,7 +467,7 @@ if ($reportMs365ActiveUsers) {
     $raw.YammerinActive = $result."yammer inActive"
     $raw.TeamsinActive = $result."teams inActive"
 
-    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $office365IconFile + '"></th><th class="section">Active Users</th></tr></table><table id="mainTable">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $officeIconFile + '"></th><th class="section">Active Users</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Service</th><th>Active</th><th>Inactive</th></tr>'
     $html += '<tr><th>Office 365</th><td>' + ("{0:N0}" -f [int]$raw.Office365Active) + '</td><td>' + ("{0:N0}" -f [int]$raw.Office365inActive) + '</td></tr>'
     $html += '<tr><th>Exchange</th><td>' + ("{0:N0}" -f [int]$raw.ExchangeActive) + '</td><td>' + ("{0:N0}" -f [int]$raw.ExchangeinActive) + '</td></tr>'
@@ -494,7 +494,7 @@ if ($reportMs365ActivationUsers) {
     $uri = "https://graph.microsoft.com/$graphApiVersion/reports/getOffice365ActivationsUserCounts"
     $result = (Invoke-RestMethod -Method Get -Uri $uri -Headers $headerParams) | ConvertFrom-Csv
 
-    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $office365IconFile + '"></th><th class="section">Product Activations</th></tr></table><table id="mainTable">'
+    $html += '<table id="mainTable"><tr><th class="section"><img src="' + $officeIconFile + '"></th><th class="section">Product Activations</th></tr></table><table id="mainTable">'
     $html += '<tr><th>Product Type</th><th>Assigned</th><th>Activated</th><th>Shared Computer Activation</th></tr>'
 
     foreach ($detail in $result) {
@@ -565,8 +565,8 @@ if ($reportMailboxUsageAndProvisioning) {
     Write-Output "$(Get-Date) :      --> Getting list of deleted mailboxes"
     # v1.2.1 - changed back to Get-Mailbox
     $deletedMailbox = @(Get-Mailbox -ResultSize Unlimited -SoftDeletedMailbox -Filter "WhenSoftDeleted -ge '$startDate'" |
-    Select-Object UserPrincipalName, WhenSoftDeleted |
-    Sort-Object UserPrincipalName)
+        Select-Object UserPrincipalName, WhenSoftDeleted |
+        Sort-Object UserPrincipalName)
 
     $exchangeMailboxStatus = "" | Select-Object ActiveMailbox, InActiveMailbox, CreatedMailbox, DeletedMailbox
     $exchangeMailboxStatus.ActiveMailbox = ($mailboxUsageAndProvisioningData | Where-Object { $_.IsInActive -eq $false }).count
@@ -707,7 +707,7 @@ if ($reportMailTraffic) {
         v1.2.8
         * Since Microsoft removed the Get-MailTrafficReport cmdlet, replacing it with Get-MailFlowStatusReport
     #>
-    $mailTrafficData = Get-MailFlowStatusReport -StartDate $startDate.ToUniversalTime() -EndDate $endDate.ToUniversalTime() -Direction Inbound,Outbound
+    $mailTrafficData = Get-MailFlowStatusReport -StartDate $startDate.ToUniversalTime() -EndDate $endDate.ToUniversalTime() -Direction Inbound, Outbound
 
     [int]$totalMessageCount = ($mailTrafficData | Measure-Object MessageCount -Sum).Sum
     [int]$inboundMessageCount = ($mailTrafficData | Where-Object { $_.Direction -eq "Inbound" } | Measure-Object MessageCount -Sum).Sum
@@ -1071,11 +1071,11 @@ $html += '</table>'
 $html += '</body></html>'
 $html | Out-File "$($reportFolder)\report.html"
 $html = $html -join "`n"
-# $html = $html -replace "$($office365IconFile)","exchangeIconFile"
+# $html = $html -replace "$($officeIconFile)","exchangeIconFile"
 if ($showLogo) {
     $html = $html.Replace($logoFile, "cid:logoFile")
 }
-$html = $html.Replace($office365IconFile, "cid:office365IconFile")
+$html = $html.Replace($officeIconFile, "cid:officeIconFile")
 $html = $html.Replace("$($exchangeIconFile)", "exchangeIconFile")
 $html = $html.Replace("$($sharepointIconFile)", "cid:sharepointIconFile")
 $html = $html.Replace("$($onedriveIconFile)", "cid:onedriveIconFile")
@@ -1116,11 +1116,11 @@ if ($sendEmail) {
                     }
                     @{
                         "@odata.type"  = "#microsoft.graph.fileAttachment"
-                        "contentID"    = "office365IconFile"
-                        "name"         = "office365IconFile"
+                        "contentID"    = "officeIconFile"
+                        "name"         = "officeIconFile"
                         "IsInline"     = $true
                         "contentType"  = "image/png"
-                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $office365IconFile -Raw -Encoding byte)))"
+                        "contentBytes" = "$([convert]::ToBase64String((Get-Content $officeIconFile -Raw -Encoding byte)))"
                     }
                     @{
                         "@odata.type"  = "#microsoft.graph.fileAttachment"
