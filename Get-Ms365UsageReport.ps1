@@ -723,12 +723,12 @@ if ($reportMailTraffic) {
     $html += '<tr><th>Total email</th><td>' + ("{0:N0}" -f $totalMessageCount) + '</td></tr>'
     $html += '<tr><th>Outbound email</th><td>' + ("{0:N0}" -f $inboundMessageCount) + '</td></tr>'
     $html += '<tr><th>Inbound email</th><td>' + ("{0:N0}" -f $outboundMessageCount) + '</td></tr>'
-    $html += '<tr><th>Messages where no threats were detected</th><td>' + ("{0:N0}" -f $goodMessageCount) + '</td></tr>'
-    $html += '<tr><th>Edge filtered</th><td>' + ("{0:N0}" -f $edgeProtectionMessageCount) + '</td></tr>'
+    $html += '<tr><th>Good mail</th><td>' + ("{0:N0}" -f $goodMessageCount) + '</td></tr>'
+    $html += '<tr><th>Edge block spam</th><td>' + ("{0:N0}" -f $edgeProtectionMessageCount) + '</td></tr>'
     $html += '<tr><th>Rule messages</th><td>' + ("{0:N0}" -f $ruleMessageCount) + '</td></tr>'
-    $html += '<tr><th>Anti-malware engine, Safe Attachments, rule filtered</th><td>' + ("{0:N0}" -f $malwareMessageCount) + '</td></tr>'
-    $html += '<tr><th>DMARC, impersonation, spoof, phish filtered</th><td>' + ("{0:N0}" -f $phishMessageCount) + '</td></tr>'
-    $html += '<tr><th>Anti-spam filtered</th><td>' + ("{0:N0}" -f $spamMessageCount) + '</td></tr>'
+    $html += '<tr><th>Email malware</th><td>' + ("{0:N0}" -f $malwareMessageCount) + '</td></tr>'
+    $html += '<tr><th>Email phish</th><td>' + ("{0:N0}" -f $phishMessageCount) + '</td></tr>'
+    $html += '<tr><th>Spam detections</th><td>' + ("{0:N0}" -f $spamMessageCount) + '</td></tr>'
     $html += '<tr><td class="placeholder"> </td></tr></table>'
 
     if ($saveRawData) {
