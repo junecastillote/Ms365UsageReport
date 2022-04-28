@@ -1,4 +1,4 @@
-# Ms365UsageReport PowerShell Script (v1.2.5)  <!-- omit in toc -->
+# Microsoft 365 Usare Reports PowerShell Script <!-- omit in toc -->
 
 [![GitHub issues](https://img.shields.io/github/issues/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/issues)
 
@@ -9,10 +9,8 @@
 > Important!!! - If you're coming from versions below 1.2.5 of this script, you'll need to update your config file from JSON to YAML format. The YAML template is included in this version.
 
 - [Overview](#overview)
-- [What's New in Version v1.2.6](#whats-new-in-version-v126)
 - [Requirements](#requirements)
 - [How to Get the Script](#how-to-get-the-script)
-  - [Files List](#files-list)
 - [Configuration](#configuration)
   - [Make a New Configuration File](#make-a-new-configuration-file)
   - [YAML Settings Explained](#yaml-settings-explained)
@@ -88,10 +86,6 @@ The reports that can be exported using this script are:
   - Total Private Chat Messages
   - Device Usage Distribution
 
-## What's New in Version v1.2.6
-
-  - Fixed 0 deleted mailbox count display
-
 ## Requirements
 
 - A registered Azure AD (OAuth) App with the following settings:
@@ -117,17 +111,7 @@ The reports that can be exported using this script are:
 
 ## How to Get the Script
 
-If you only plan to use the script, you can [*download the latest release*](https://github.com/junecastillote/Ms365UsageReport/releases).
-
-Otherwise, you can fork, [*clone*](https://github.com/junecastillote/Ms365UsageReport.git), or [*download*](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [*repository*](https://github.com/junecastillote/Ms365UsageReport). After downloading, extract the files to your preferred location.
-
-### Files List
-
-- `Get-Ms365UsageReport.ps1` - this is the main script file.
-- `config_template.yaml` - this is the configuration file template.
-- `LICENSE` - the license document for this repository.
-- `README.md` - this document that you are reading right now.
-- `.gitattributes` and `.gitignore` - ignore these files, they don't affect the script.
+[*Clone*](https://github.com/junecastillote/Ms365UsageReport.git) or [*download*](https://github.com/junecastillote/Ms365UsageReport/archive/main.zip) the script from the [*repository*](https://github.com/junecastillote/Ms365UsageReport). After downloading, extract the files to your preferred location.
 
 ## Configuration
 
@@ -137,7 +121,7 @@ The script uses configuration details from a YAML document. You can have many co
 
 To create a new configuration, make a copy of the *config_template.yml*. I recommend for you to use your Microsoft 365 tenant domain as the name of the configuration file for easier identification.
 
-![Create a copy of the configuration file](images/copy_config.png)<br>Create a copy of the configuration file
+![Create a copy of the configuration file](images/copy_config.png)
 
 > You can use any name for the new configuration file. What's important is the contents, not the file name.
 
