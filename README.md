@@ -1,9 +1,7 @@
 # Ms365UsageReport PowerShell Script (v1.2.5)  <!-- omit in toc -->
 
 [![GitHub issues](https://img.shields.io/github/issues/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/issues)
-
 [![GitHub forks](https://img.shields.io/github/forks/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/network)
-
 [![GitHub license](https://img.shields.io/github/license/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/blob/main/LICENSE)
 
 > Important!!! - If you're coming from versions below 1.2.5 of this script, you'll need to update your config file from JSON to YAML format. The YAML template is included in this version.
