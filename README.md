@@ -1,4 +1,4 @@
-# Microsoft 365 Usare Reports PowerShell Script <!-- omit in toc -->
+# Microsoft 365 Usage Reports PowerShell Script <!-- omit in toc -->
 
 [![GitHub issues](https://img.shields.io/github/issues/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/issues)
 [![GitHub forks](https://img.shields.io/github/forks/junecastillote/Ms365UsageReport)](https://github.com/junecastillote/Ms365UsageReport/network)
